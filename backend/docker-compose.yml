@@ -1,0 +1,77 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-founder}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-founder}
+      POSTGRES_DB: ${POSTGRES_DB:-founderwall}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-founder} -d ${POSTGRES_DB:-founderwall}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [founderwall]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [founderwall]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-founder}:${POSTGRES_PASSWORD:-founder}@db:5432/${POSTGRES_DB:-founderwall}
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      LOG_JSON: ${LOG_JSON:-true}
+      # Nginx terminates the client connection; the app only ever sees it via
+      # the private network, so forwarded headers are authoritative here.
+      TRUST_PROXY_HEADERS: "true"
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+    # Give in-flight requests and WebSocket clients time to drain on deploy.
+    stop_grace_period: 30s
+    networks: [founderwall]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+    networks: [founderwall]
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  founderwall:
+    driver: bridge
