@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+
+# Local environment overrides (the committed template is .env.example)
+.env*.local
+
+# TypeScript incremental build artifact
+tsconfig.tsbuildinfo
+
+# Editor / local tooling
+.claude

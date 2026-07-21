@@ -1,0 +1,299 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* The palette, named. These were already the world's colours — they are
+   written down here so nothing has to guess them again. */
+:root {
+  --ink: 207, 198, 180; /* parchment text, as RGB for alpha use */
+  --umber: #100d0b; /* warm umber-dark — never pure black */
+  --shadow: 10, 8, 6; /* the darkness at the edges */
+  /* The live signal. The wall has no green in it, so this is a sage pulled
+     most of the way toward the room's warmth — alive, never a status LED. */
+  --live: #8c9a7b;
+  --serif: ui-serif, Georgia, serif;
+  /* Safe-area insets, resolved once. Zero on hardware without cutouts, so
+     these are free to use everywhere. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+html,
+body {
+  /* 100dvh tracks the *dynamic* viewport, so the wall always fills the screen
+     as the mobile address bar expands and collapses. vh is the fallback for
+     browsers without dvh (older Safari/Firefox). */
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--umber);
+  color: rgb(var(--ink));
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  /* No rubber-band scroll or pull-to-refresh fighting the camera on touch. */
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+  outline: none;
+  /* Belt-and-braces: touch gestures on the canvas drive the camera, never the
+     page. The rig also sets this on the element; keeping it here covers the
+     first frame before the rig mounts. */
+  touch-action: none;
+}
+
+/* The "+" paper tag — a small round unbleached tag, half in shadow */
+.plus-tag {
+  position: fixed;
+  /* Lift clear of the home indicator / gesture bar on notched phones. */
+  bottom: calc(6vh + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  /* 44×44 is the minimum comfortable touch target; never shrinks below it. */
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #e7ddc6;
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.55),
+    inset 0 -2px 4px rgba(90, 75, 55, 0.25);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4c443a;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1;
+  animation: tagFloat 6s ease-in-out infinite;
+  transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.plus-tag:hover {
+  transform: translateX(-50%) rotate(4deg);
+}
+@keyframes tagFloat {
+  0%, 100% { margin-bottom: 0; }
+  50% { margin-bottom: 3px; }
+}
+
+/* The whisper — the only interface text in the world */
+.whisper {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(12vh + var(--safe-bottom));
+  max-width: min(90vw, 30rem);
+  text-align: center;
+  font-family: ui-serif, Georgia, serif;
+  font-size: clamp(12px, 3.4vw, 13px);
+  letter-spacing: 0.06em;
+  color: rgba(207, 198, 180, 0.4);
+  pointer-events: none;
+}
+
+/* ————————————————————————————————————————————————————————————
+   THE HERO — words resting on the room, not a panel bolted over it.
+   No card, no border, no fill. Legibility comes from a breath of shadow
+   behind the glyphs, so every note stays visible straight through.
+   ———————————————————————————————————————————————————————————— */
+/* The scrim. The wall is warm and often bright, so light type alone loses.
+   This is a full-bleed gradient — not a card, not a panel, no edges — the same
+   device a title sequence uses: the top of the frame is weighted so words hold,
+   and every note stays visible straight through it. */
+.hero-scrim {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: min(48vh, 30rem);
+  z-index: 34;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--shadow), 0.5) 0%,
+    rgba(var(--shadow), 0.36) 34%,
+    rgba(var(--shadow), 0.15) 66%,
+    rgba(var(--shadow), 0) 100%
+  );
+}
+
+.hero {
+  position: fixed;
+  /* Sit below the notch / Dynamic Island, and clamp the width against the
+     side safe areas so a landscape phone's rounded corners never clip a word. */
+  top: calc(clamp(2.75rem, 7vh, 5.5rem) + var(--safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35; /* above the vignette (30), beneath the entrance (40) */
+  width: min(600px, calc(100vw - 3rem - var(--safe-left) - var(--safe-right)));
+  text-align: center;
+  /* The overlay is never in the input path: drag, hover and note selection
+     all pass straight through to the scene's window listeners. */
+  pointer-events: none;
+}
+
+.hero-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(1.9rem, 5.1vw, 3.05rem);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: rgba(238, 231, 216, 0.97);
+  /* Not a glow — the shadow a physical object casts on the air behind it. */
+  text-shadow:
+    0 1px 34px rgba(var(--shadow), 0.9),
+    0 1px 3px rgba(var(--shadow), 0.65);
+}
+
+.hero-subtitle {
+  margin: clamp(0.85rem, 1.9vh, 1.25rem) auto 0;
+  max-width: 34rem;
+  font-family: var(--serif);
+  font-size: clamp(0.875rem, 1.5vw, 1.0625rem);
+  line-height: 1.6;
+  letter-spacing: 0.012em;
+  color: rgba(var(--ink), 0.82);
+  text-shadow:
+    0 1px 24px rgba(var(--shadow), 0.9),
+    0 1px 3px rgba(var(--shadow), 0.55);
+}
+
+.hero-live {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 1.5rem; /* reserved, so the figure's arrival shifts nothing */
+  margin-top: clamp(1.35rem, 3.2vh, 2.1rem);
+  font-family: var(--serif);
+  font-size: clamp(0.8125rem, 1.3vw, 0.9375rem);
+  letter-spacing: 0.045em;
+  color: rgba(var(--ink), 0.86);
+  text-shadow:
+    0 1px 20px rgba(var(--shadow), 0.95),
+    0 1px 3px rgba(var(--shadow), 0.7);
+}
+
+/* This line sits below the scrim's strongest band, on the busiest part of the
+   wall — the one place light type loses. So it carries its own pool of shade:
+   a soft ellipse with no edge anywhere, which lifts the figure off the paper
+   without becoming a chip, a pill, or a badge. */
+.hero-live::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  /* Wider than the text so the falloff is invisible, but never wider than the
+     screen — the gradient must fade out, never meet an edge. */
+  width: min(calc(100% + 3rem), 100vw);
+  height: 2.7rem;
+  z-index: -1;
+  pointer-events: none;
+  /* Weighted at the centre and gone well before the edge: enough to seat the
+     figure, never enough to read as a band lying on the wall. */
+  background: radial-gradient(
+    ellipse at center,
+    rgba(var(--shadow), 0.46) 0%,
+    rgba(var(--shadow), 0.3) 38%,
+    rgba(var(--shadow), 0.09) 62%,
+    rgba(var(--shadow), 0) 78%
+  );
+}
+
+.hero-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  align-self: center;
+  background: var(--live);
+  box-shadow:
+    0 0 10px 2px rgba(140, 154, 123, 0.55),
+    0 0 3px 0 rgba(140, 154, 123, 0.9);
+  /* A breath, not a blink. Same tempo as the room. */
+  animation: livePulse 3.4s ease-in-out infinite;
+}
+
+/* The figure is the point of the sentence — the proof that real people are
+   on the other side of this. It reads brightest; the words around it stay
+   quiet and let it carry. */
+.hero-live-number {
+  font-size: 1.18em;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+  color: rgba(248, 244, 234, 0.99);
+  font-variant-numeric: tabular-nums; /* no width jitter while counting */
+  text-shadow:
+    0 1px 16px rgba(var(--shadow), 0.95),
+    0 1px 3px rgba(var(--shadow), 0.8);
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Tablet — the same composition, a touch quieter. */
+@media (max-width: 900px) {
+  .hero {
+    top: clamp(2.25rem, 5.5vh, 4rem);
+  }
+}
+
+/* Mobile — the wall must stay the subject. Tighter type, higher on screen,
+   and the subtitle narrows rather than wrapping into a paragraph. */
+@media (max-width: 560px) {
+  .hero {
+    top: 2.25rem;
+    width: calc(100vw - 2.5rem);
+  }
+  .hero-subtitle {
+    max-width: 24rem;
+    line-height: 1.55;
+  }
+  .hero-live {
+    margin-top: 1.1rem;
+  }
+}
+
+/* Short landscape screens: never let the words crowd the horizon. */
+@media (max-height: 520px) {
+  .hero {
+    top: 1.25rem;
+  }
+  .hero-subtitle,
+  .hero-live {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-live-dot {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+/* Hidden textarea that catches keystrokes during the writing moment */
+.ghost-input {
+  position: fixed;
+  opacity: 0;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+}
