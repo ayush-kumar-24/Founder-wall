@@ -214,9 +214,16 @@ function LightingRig({ notes }: { notes: NoteData[] }) {
         target={washTargets[2]}
       />
       <primitive object={dayTarget} />
+      {/* The day-spotlight stays mounted even on an empty wall so its ref and
+          the intensity animation in useFrame remain valid. With no note to
+          light it is held at zero intensity (see useFrame) and parked at a
+          neutral wall-centre position; the moment a note arrives it re-renders
+          to that note's position and fades in. */}
       <spotLight
         ref={daySpot}
-        position={[dayNote.x + 0.5, dayNote.y + 2.4, 2.1]}
+        position={
+          dayNote ? [dayNote.x + 0.5, dayNote.y + 2.4, 2.1] : [0.5, 2.7, 2.1]
+        }
         angle={0.13}
         penumbra={0.9}
         color="#ffe8c4"
