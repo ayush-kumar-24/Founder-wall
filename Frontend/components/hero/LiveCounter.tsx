@@ -34,7 +34,9 @@ export default function LiveCounter() {
             exit={{ opacity: 0, transition: { duration: 0.6 } }}
           >
             <CountUp value={stats.founders} className="hero-live-number" />
-            {" founders have shared their thoughts"}
+            {stats.founders === 1
+              ? " founder has shared a thought"
+              : " founders have shared their thoughts"}
           </motion.span>
         )}
       </AnimatePresence>

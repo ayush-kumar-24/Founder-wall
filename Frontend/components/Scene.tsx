@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useWall, LandedNote } from "@/lib/store";
-import { generateNotes, NoteData, WALL } from "@/lib/notes";
+import { useWall } from "@/lib/store";
+import { NoteData, WALL } from "@/lib/notes";
+import { COLOR_HEX } from "@/lib/mapping";
 import { sunrise, paperSettle, throwEase, breath, damp, lerp, spring } from "@/lib/easings";
 import { makeNoteTexture, drawNoteFace } from "@/lib/paperTexture";
 import { getNoteTexture, pumpTextureQueue, TIER_MID, TIER_CLOSE, TIER_FOCUS } from "@/lib/textureCache";
@@ -71,12 +72,10 @@ function makeCurledNoteGeometry(curl = 1): THREE.PlaneGeometry {
   return g;
 }
 
-const NOTES = generateNotes(300);
-
 // ————————————————————————————————————————————————————————————
 // LIGHTING RIG — unchanged philosophy: the light has no source.
 // ————————————————————————————————————————————————————————————
-function LightingRig() {
+function LightingRig({ notes }: { notes: NoteData[] }) {
   const phase = useWall((s) => s.phase);
   const phaseStartedAt = useWall((s) => s.phaseStartedAt);
   const hemi = useRef<THREE.HemisphereLight>(null!);
@@ -108,14 +107,15 @@ function LightingRig() {
   const daySpot = useRef<THREE.SpotLight>(null!);
   const dayNote = useMemo(() => {
     const day = Math.floor(Date.now() / 86400000);
-    const candidates = NOTES.filter(
+    const candidates = notes.filter(
       (n) => n.y > 1.2 && n.y < 2.6 && Math.abs(n.x) < 4
     );
+    if (candidates.length === 0) return null; // a bare wall has nothing to spotlight
     return candidates[(day * 131) % candidates.length];
-  }, []);
+  }, [notes]);
   const dayTarget = useMemo(() => {
     const o = new THREE.Object3D();
-    o.position.set(dayNote.x, dayNote.y, 0);
+    if (dayNote) o.position.set(dayNote.x, dayNote.y, 0);
     return o;
   }, [dayNote]);
 
@@ -157,7 +157,7 @@ function LightingRig() {
     washC.current.intensity = damp(washC.current.intensity, washT * 0.85, lam, dt);
     daySpot.current.intensity = damp(
       daySpot.current.intensity,
-      inWriting ? 0 : washT * 0.38,
+      inWriting || !dayNote ? 0 : washT * 0.38,
       lam,
       dt
     );
@@ -491,15 +491,22 @@ function Wall() {
 // Ambient flutter only happens while the visitor stands back — up close
 // the wall holds still. The wall never fights the visitor.
 // ————————————————————————————————————————————————————————————
-function NotesField() {
+function NotesField({ notes }: { notes: NoteData[] }) {
   const ref = useRef<THREE.InstancedMesh>(null!);
   const group = useRef<THREE.Group>(null!);
   const lastLanding = useWall((s) => s.lastLanding);
   const geo = useMemo(() => makeCurledNoteGeometry(1), []);
   const dummy = useMemo(() => new THREE.Object3D(), []);
   const flutter = useRef({ idx: -1, start: 0, next: 2500 });
-  const breezeAmt = useMemo(() => new Float32Array(NOTES.length), []);
+  const breezeAmt = useMemo(() => new Float32Array(notes.length), [notes.length]);
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
+  // explore.focusedId is a note *id*, not an instance index — this maps one to
+  // the other so the focused note's instance can be addressed on the GPU.
+  const indexById = useMemo(() => {
+    const m = new Map<number, number>();
+    notes.forEach((n, i) => m.set(n.id, i));
+    return m;
+  }, [notes]);
   const prevFocused = useRef(-1);
   const lastPointerMove = useRef(0);
 
@@ -527,8 +534,9 @@ function NotesField() {
 
   useEffect(() => {
     const mesh = ref.current;
+    if (notes.length === 0) return;
     const c = new THREE.Color();
-    NOTES.forEach((n, i) => {
+    notes.forEach((n, i) => {
       compose(n);
       mesh.setMatrixAt(i, dummy.matrix);
       c.set(n.color).lerp(new THREE.Color("#cfc6b3"), n.age * 0.45);
@@ -567,8 +575,8 @@ function NotesField() {
     {
       // reach widens slightly with distance so it stays perceivable
       const R = 0.32 + explore.dist * 0.05;
-      for (let i = 0; i < NOTES.length; i++) {
-        const n = NOTES[i];
+      for (let i = 0; i < notes.length; i++) {
+        const n = notes[i];
         const dx = n.x - cwx;
         const dy = n.y - cwy;
         const dd = Math.hypot(dx, dy);
@@ -577,7 +585,7 @@ function NotesField() {
         if (target > 0.001 || prev > 0.001) {
           const b = damp(prev, target, 5, dt);
           breezeAmt[i] = b;
-          if (i === explore.focusedId) continue; // the read note is elsewhere
+          if (n.id === explore.focusedId) continue; // the read note is elsewhere
           if (b > 0.0015) {
             const nx = dx / Math.max(dd, 0.05);
             const ny = dy / Math.max(dd, 0.05);
@@ -606,17 +614,17 @@ function NotesField() {
     // ————— the read note steps forward; its wall instance steps aside —————
     if (explore.focusedId !== prevFocused.current) {
       if (prevFocused.current >= 0) {
-        const p = NOTES[prevFocused.current];
-        if (p) {
-          compose(p);
-          mesh.setMatrixAt(prevFocused.current, dummy.matrix);
+        const pi = indexById.get(prevFocused.current);
+        if (pi !== undefined) {
+          compose(notes[pi]);
+          mesh.setMatrixAt(pi, dummy.matrix);
         }
       }
       if (explore.focusedId >= 0) {
-        const c = NOTES[explore.focusedId];
-        if (c) {
-          compose(c, 0, 0, 0, 0, 1e-4);
-          mesh.setMatrixAt(explore.focusedId, dummy.matrix);
+        const ci = indexById.get(explore.focusedId);
+        if (ci !== undefined) {
+          compose(notes[ci], 0, 0, 0, 0, 1e-4);
+          mesh.setMatrixAt(ci, dummy.matrix);
         }
       }
       prevFocused.current = explore.focusedId;
@@ -625,23 +633,23 @@ function NotesField() {
 
     const f = flutter.current;
     // flutter lives at viewing distance; reading distance is stillness
-    if (f.idx === -1 && now > f.next && explore.dist > 3.6) {
-      const pick = Math.floor(Math.random() * NOTES.length);
-      if (pick !== explore.focusedId) {
+    if (f.idx === -1 && now > f.next && explore.dist > 3.6 && notes.length > 0) {
+      const pick = Math.floor(Math.random() * notes.length);
+      if (notes[pick].id !== explore.focusedId) {
         f.idx = pick;
         f.start = now;
       }
     }
-    if (f.idx >= 0) {
+    if (f.idx >= 0 && f.idx < notes.length) {
       const t = (now - f.start) / 480;
       if (t >= 1) {
-        compose(NOTES[f.idx]);
+        compose(notes[f.idx]);
         mesh.setMatrixAt(f.idx, dummy.matrix);
         f.idx = -1;
         f.next = now + 4000 + Math.random() * 5000;
       } else {
         const a = Math.sin(t * Math.PI) * 0.035;
-        compose(NOTES[f.idx], a, Math.sin(t * Math.PI) * 0.004);
+        compose(notes[f.idx], a, Math.sin(t * Math.PI) * 0.004);
         mesh.setMatrixAt(f.idx, dummy.matrix);
       }
       dirty = true;
@@ -650,8 +658,8 @@ function NotesField() {
     if (lastLanding) {
       const dtL = (performance.now() - lastLanding.time) / 1000;
       if (dtL >= 0 && dtL < 1.4) {
-        NOTES.forEach((n, i) => {
-          if (i === explore.focusedId) return;
+        notes.forEach((n, i) => {
+          if (n.id === explore.focusedId) return;
           const d = Math.hypot(n.x - lastLanding.x, n.y - lastLanding.y);
           if (d < 0.9) {
             const delay = d * 0.55;
@@ -684,7 +692,7 @@ function NotesField() {
     <group ref={group}>
       <instancedMesh
         ref={ref}
-        args={[geo, undefined as unknown as THREE.Material, NOTES.length]}
+        args={[geo, undefined as unknown as THREE.Material, Math.max(1, notes.length)]}
       >
         <meshStandardMaterial roughness={0.92} side={THREE.DoubleSide} />
       </instancedMesh>
@@ -700,7 +708,7 @@ function NotesField() {
 // your eyes adjust. Tier upgrades swap identical content at higher
 // resolution: focus arriving, never popping.
 // ————————————————————————————————————————————————————————————
-function ReadableNotes() {
+function ReadableNotes({ notes }: { notes: NoteData[] }) {
   const { camera, size } = useThree();
   const group = useRef<THREE.Group>(null!);
   const hovered = useRef<THREE.Mesh | null>(null);
@@ -734,7 +742,7 @@ function ReadableNotes() {
       makeCurledNoteGeometry(0.85),
       makeCurledNoteGeometry(1.3),
     ];
-    return NOTES.map((n) => {
+    return notes.map((n) => {
       const g = geoByCurl[Math.min(2, Math.floor(n.age * 3))];
       const mat = new THREE.MeshStandardMaterial({
         roughness: 0.9,
@@ -754,7 +762,8 @@ function ReadableNotes() {
       m.userData = { note: n, baseZ: m.position.z, lift: 0, breeze: 0, dim: 1, zv: 0, sv: 0 };
       return m;
     });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes]);
 
   useEffect(() => {
     const g = group.current;
@@ -961,44 +970,6 @@ function ReadableNotes() {
 }
 
 // ————————————————————————————————————————————————————————————
-// LANDED NOTES
-// ————————————————————————————————————————————————————————————
-function LandedNotes() {
-  const landed = useWall((s) => s.landedNotes);
-  return (
-    <group>
-      {landed.map((n) => (
-        <LandedNoteMesh key={n.id} note={n} />
-      ))}
-    </group>
-  );
-}
-
-function LandedNoteMesh({ note }: { note: LandedNote }) {
-  const geo = useMemo(() => makeCurledNoteGeometry(0.25), []);
-  const tex = useMemo(() => makeNoteTexture(note.text, note.color, 512, 0, note.id + 3, 1, note.who), [note]);
-  const ref = useRef<THREE.Mesh>(null!);
-  useEffect(() => () => tex.dispose(), [tex]);
-  useFrame(() => {
-    const t = (performance.now() - note.bornAt) / 400;
-    if (t < 1) {
-      const s = paperSettle(t);
-      ref.current.scale.setScalar(0.9 + 0.1 * s);
-    }
-  });
-  return (
-    <mesh
-      ref={ref}
-      geometry={geo}
-      position={[note.x, note.y, WALL.curve(note.x) + 0.024]}
-      rotation={[0, WALL.normalYaw(note.x), note.rot]}
-    >
-      <meshStandardMaterial map={tex} roughness={0.88} side={THREE.DoubleSide} />
-    </mesh>
-  );
-}
-
-// ————————————————————————————————————————————————————————————
 // THE WRITING NOTE
 // ————————————————————————————————————————————————————————————
 const WRITE_POS = new THREE.Vector3(0, 1.55, 4.35);
@@ -1007,6 +978,7 @@ function WritingNote() {
   const phase = useWall((s) => s.phase);
   const phaseStartedAt = useWall((s) => s.phaseStartedAt);
   const text = useWall((s) => s.writingText);
+  const color = useWall((s) => s.writingColor);
   const ref = useRef<THREE.Mesh>(null!);
   const caretOn = useRef(true);
 
@@ -1025,7 +997,7 @@ function WritingNote() {
 
   useEffect(() => {
     const draw = () => {
-      drawNoteFace(canvas, text, "#e9e0cc", { caret: caretOn.current, seed: 11, detail: 1, who: "Anonymous Founder" });
+      drawNoteFace(canvas, text, COLOR_HEX[color], { caret: caretOn.current, seed: 11, detail: 1, who: "" });
       tex.needsUpdate = true;
     };
     draw();
@@ -1034,7 +1006,7 @@ function WritingNote() {
       draw();
     }, 550);
     return () => clearInterval(iv);
-  }, [text, canvas, tex]);
+  }, [text, color, canvas, tex]);
 
   useFrame(() => {
     if (!ref.current) return;
@@ -1059,22 +1031,38 @@ function WritingNote() {
 function FlyingNote() {
   const phase = useWall((s) => s.phase);
   const phaseStartedAt = useWall((s) => s.phaseStartedAt);
-  const text = useWall((s) => s.writingText);
+  const pending = useWall((s) => s.pendingNote);
   const setPhase = useWall((s) => s.setPhase);
-  const addLandedNote = useWall((s) => s.addLandedNote);
+  const upsertNote = useWall((s) => s.upsertNote);
+  const setPendingNote = useWall((s) => s.setPendingNote);
   const setLastLanding = useWall((s) => s.setLastLanding);
   const setWritingText = useWall((s) => s.setWritingText);
   const ref = useRef<THREE.Mesh>(null!);
   const done = useRef(false);
 
-  const target = useMemo(() => {
-    const x = -0.1 + (Math.random() - 0.5) * 0.5;
-    const y = 1.62 + (Math.random() - 0.5) * 0.4;
-    return { x, y, rot: (Math.random() - 0.5) * 0.14 };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  // The note's place on the wall was assigned by the server before the flight
+  // began; we animate toward it, then commit it to the live wall on contact.
+  const target = useMemo(
+    () =>
+      pending
+        ? { x: pending.x, y: pending.y, rot: pending.rot }
+        : { x: 0, y: 1.62, rot: 0 },
+    [pending]
+  );
 
-  const tex = useMemo(() => makeNoteTexture(text, "#e9e0cc", 512, 0, 11, 1, "Anonymous Founder"), [text]);
+  const tex = useMemo(
+    () =>
+      makeNoteTexture(
+        pending?.text ?? "",
+        pending?.color ?? "#e9e0cc",
+        512,
+        0,
+        pending?.id ?? 11,
+        1,
+        ""
+      ),
+    [pending]
+  );
 
   const p0 = WRITE_POS.clone().add(new THREE.Vector3(0, 0.12, 0.1));
   const p2 = useMemo(
@@ -1113,18 +1101,10 @@ function FlyingNote() {
       m.scale.setScalar(lerp(0.58, 0.15, k));
     } else {
       done.current = true;
-      addLandedNote({
-        id: Date.now(),
-        text,
-        who: "Anonymous Founder",
-        x: target.x,
-        y: target.y,
-        rot: target.rot,
-        color: "#e9e0cc",
-        bornAt: performance.now(),
-      });
+      if (pending) upsertNote(pending);
       setLastLanding({ x: target.x, y: target.y, time: performance.now() });
       setWritingText("");
+      setPendingNote(null);
       setPhase("settling");
       setTimeout(() => useWall.getState().setPhase("idle"), 1800);
     }
@@ -1132,72 +1112,11 @@ function FlyingNote() {
 
   useEffect(() => () => tex.dispose(), [tex]);
 
-  if (phase !== "flying") return null;
+  if (phase !== "flying" || !pending) return null;
   return (
     <mesh ref={ref} position={WRITE_POS.toArray()} scale={0.55}>
       <planeGeometry args={[1, 1, 6, 6]} />
       <meshStandardMaterial map={tex} roughness={0.9} side={THREE.DoubleSide} />
-    </mesh>
-  );
-}
-
-// ————————————————————————————————————————————————————————————
-// THE STRANGER
-// ————————————————————————————————————————————————————————————
-function StrangerNote() {
-  const addLandedNote = useWall((s) => s.addLandedNote);
-  const setLastLanding = useWall((s) => s.setLastLanding);
-  const [flight, setFlight] = useState<null | { start: number; x: number; y: number }>(null);
-  const fired = useRef(false);
-  const ref = useRef<THREE.Mesh>(null!);
-
-  useEffect(() => {
-    const tryFire = () => {
-      if (fired.current) return;
-      if (useWall.getState().phase !== "idle") {
-        setTimeout(tryFire, 15000);
-        return;
-      }
-      fired.current = true;
-      setFlight({ start: performance.now(), x: 1.38, y: 2.28 });
-    };
-    const id = setTimeout(tryFire, 38000);
-    return () => clearTimeout(id);
-  }, []);
-
-  useFrame(() => {
-    if (!flight || !ref.current) return;
-    const t = (performance.now() - flight.start) / 1600;
-    if (t >= 1) {
-      addLandedNote({
-        id: 999999,
-        text: "Still here. That's the update.",
-        who: "Founder #2117",
-        x: flight.x,
-        y: flight.y,
-        rot: 0.06,
-        color: "#e9dfc4",
-        bornAt: performance.now(),
-      });
-      setLastLanding({ x: flight.x, y: flight.y, time: performance.now() });
-      setFlight(null);
-      return;
-    }
-    const k = throwEase(t);
-    const from = new THREE.Vector3(4.9, 3.5, 2.6);
-    const to = new THREE.Vector3(flight.x, flight.y, WALL.curve(flight.x) + 0.024);
-    const mid = from.clone().lerp(to, 0.5).add(new THREE.Vector3(0, 0.5, 0.4));
-    const a = from.clone().lerp(mid, k);
-    const b = mid.clone().lerp(to, k);
-    ref.current.position.copy(a.lerp(b, k));
-    ref.current.scale.setScalar(0.15);
-  });
-
-  if (!flight) return null;
-  return (
-    <mesh ref={ref}>
-      <planeGeometry args={[1, 1]} />
-      <meshStandardMaterial color="#e9dfc4" side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -1261,6 +1180,7 @@ function CameraRig() {
   const { camera, gl, size } = useThree();
   const phase = useWall((s) => s.phase);
   const phaseStartedAt = useWall((s) => s.phaseStartedAt);
+  const notes = useWall((s) => s.notes);
 
   const pos = useRef({ x: -0.1, y: 1.7 }); // eye level, on the clearing
   const vel = useRef({ x: 0, y: 0 });
@@ -1452,7 +1372,7 @@ function CameraRig() {
       if (explore.focusedId !== prevFocusId.current) {
         prevFocusId.current = explore.focusedId;
         if (explore.focusedId >= 0) {
-          const n = NOTES[explore.focusedId];
+          const n = notes.find((nn) => nn.id === explore.focusedId);
           if (n) {
             focusGoal.current = { x: n.x, y: n.y };
             targetDist.current = Math.min(targetDist.current, 2.1);
@@ -1558,19 +1478,36 @@ export default function Scene() {
     scene.fog = new THREE.Fog("#120e0b", 8.5, 20);
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.toneMappingExposure = 0.98;
+
+    // Survive a GPU context loss (tab backgrounding, driver reset, memory
+    // pressure) instead of crashing to the error boundary: preventDefault lets
+    // the browser restore the context, and three re-uploads its resources.
+    const canvas = gl.domElement;
+    const onLost = (e: Event) => e.preventDefault();
+    canvas.addEventListener("webglcontextlost", onLost);
+    return () => canvas.removeEventListener("webglcontextlost", onLost);
   }, [scene, gl]);
 
+  const notes = useWall((s) => s.notes);
+  const notesVersion = useWall((s) => s.notesVersion);
   return (
     <>
-      <LightingRig />
+      <LightingRig notes={notes} />
       <Room />
       <Wall />
-      <NotesField />
-      <ReadableNotes />
-      <LandedNotes />
+      {/* The wall's note layers are sized to the note count at mount, so a
+          version bump (a note added, edited, or removed) remounts them to
+          rebuild cleanly. Keyed together so instances and overlays stay paired. */}
+      <group key={notesVersion}>
+        {notes.length > 0 && (
+          <>
+            <NotesField notes={notes} />
+            <ReadableNotes notes={notes} />
+          </>
+        )}
+      </group>
       <WritingNote />
       <FlyingNote />
-      <StrangerNote />
       <Dust />
       <CameraRig />
     </>

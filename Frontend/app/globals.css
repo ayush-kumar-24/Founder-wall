@@ -297,3 +297,135 @@ canvas {
   height: 10px;
   pointer-events: none;
 }
+
+/* ————————————————————————————————————————————————————————————
+   IDENTITY — an invitation at the base of the wall when signed out,
+   a small corner chip when signed in. Never a panel, never a border.
+   ———————————————————————————————————————————————————————————— */
+.auth-invite {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(5.5vh + var(--safe-bottom));
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+.auth-invite__line {
+  font-family: var(--serif);
+  font-size: clamp(12px, 3.4vw, 13px);
+  letter-spacing: 0.06em;
+  color: rgba(var(--ink), 0.5);
+  text-shadow: 0 1px 16px rgba(var(--shadow), 0.9);
+}
+.auth-invite__dev {
+  font-family: var(--serif);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  color: #4c443a;
+  background: #e7ddc6;
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1.4rem;
+  cursor: pointer;
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.5),
+    inset 0 -2px 4px rgba(90, 75, 55, 0.22);
+  transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.auth-invite__dev:hover {
+  transform: translateY(-1px);
+}
+.auth-invite__dev:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.auth-chip {
+  position: fixed;
+  left: calc(1.4rem + var(--safe-left));
+  bottom: calc(1.4rem + var(--safe-bottom));
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-family: var(--serif);
+  font-size: 12.5px;
+  letter-spacing: 0.03em;
+  color: rgba(var(--ink), 0.62);
+}
+.auth-chip__name {
+  color: rgba(var(--ink), 0.82);
+  max-width: 40vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.auth-chip__link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: 0.05em;
+  color: rgba(var(--ink), 0.42);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.3s ease;
+}
+.auth-chip__link:hover {
+  color: rgba(var(--ink), 0.72);
+}
+.auth-chip__link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The colour choice — six papers in a quiet row while writing. */
+.color-picker {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(18vh + var(--safe-bottom));
+  z-index: 36;
+  display: flex;
+  gap: 0.7rem;
+}
+.color-picker__dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease;
+}
+.color-picker__dot:hover {
+  transform: scale(1.12);
+}
+.color-picker__dot--on {
+  border-color: rgba(238, 231, 216, 0.95);
+  transform: scale(1.15);
+}
+
+/* A single quiet line when the wall declines a note. */
+.post-error {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(11vh + var(--safe-bottom));
+  z-index: 37;
+  max-width: min(90vw, 32rem);
+  text-align: center;
+  font-family: var(--serif);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: rgba(224, 196, 178, 0.9);
+  text-shadow: 0 1px 16px rgba(var(--shadow), 0.9);
+  pointer-events: none;
+}

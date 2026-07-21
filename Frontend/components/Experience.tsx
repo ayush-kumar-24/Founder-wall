@@ -4,8 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWall } from "@/lib/store";
+import { useBootstrap } from "@/lib/useBootstrap";
+import { submitNote } from "@/lib/submit";
+import { NOTE_COLORS, COLOR_HEX, type NoteColor } from "@/lib/mapping";
+import { NOTE_MAX_LENGTH } from "@/lib/config";
 import Scene from "./Scene";
 import HeroOverlay from "./hero/HeroOverlay";
+import AuthPanel from "./AuthPanel";
 
 // ————————————————————————————————————————————————————————————
 // THE ENTRANCE — not black. Darkness with one distant lit note:
@@ -58,23 +63,55 @@ function Entrance() {
 
 // ————————————————————————————————————————————————————————————
 // THE "+" — a small round paper tag resting quietly at the edge
-// of the light. No label. No tooltip. No pulse. The ones who find
-// it will mean it.
+// of the light. It appears only once a founder has signed in and has
+// not yet left their one note; the moment is theirs to mean.
 // ————————————————————————————————————————————————————————————
 function PlusTag() {
   const phase = useWall((s) => s.phase);
+  const user = useWall((s) => s.user);
+  const myNote = useWall((s) => s.myNote);
   const setPhase = useWall((s) => s.setPhase);
-  if (phase !== "idle") return null;
+  if (phase !== "idle" || !user || myNote) return null;
   return (
     <motion.button
       className="plus-tag"
       aria-label="leave a note"
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1, transition: { delay: 2.2, duration: 2.4 } }}
+      animate={{ opacity: 1, transition: { delay: 0.6, duration: 1.8 } }}
       onClick={() => setPhase("writing")}
     >
       +
     </motion.button>
+  );
+}
+
+// ————————————————————————————————————————————————————————————
+// THE COLOUR CHOICE — six papers, chosen before the words. A quiet
+// row above the note while writing.
+// ————————————————————————————————————————————————————————————
+function ColorPicker() {
+  const phase = useWall((s) => s.phase);
+  const chosen = useWall((s) => s.writingColor);
+  const setColor = useWall((s) => s.setWritingColor);
+  if (phase !== "writing") return null;
+  return (
+    <motion.div
+      className="color-picker"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { delay: 0.6, duration: 1.4 } }}
+    >
+      {NOTE_COLORS.map((c: NoteColor) => (
+        <button
+          key={c}
+          aria-label={c}
+          className={
+            "color-picker__dot" + (c === chosen ? " color-picker__dot--on" : "")
+          }
+          style={{ background: COLOR_HEX[c] }}
+          onClick={() => setColor(c)}
+        />
+      ))}
+    </motion.div>
   );
 }
 
@@ -87,6 +124,7 @@ function GhostInput() {
   const text = useWall((s) => s.writingText);
   const setWritingText = useWall((s) => s.setWritingText);
   const setPhase = useWall((s) => s.setPhase);
+  const setPostError = useWall((s) => s.setPostError);
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -103,15 +141,16 @@ function GhostInput() {
         ref={ref}
         className="ghost-input"
         value={text}
-        maxLength={120} // the note is only so big. Paper doesn't have counters.
+        maxLength={NOTE_MAX_LENGTH}
         onChange={(e) => setWritingText(e.target.value.replace(/\n/g, " "))}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            if (text.trim().length > 0) setPhase("flying");
+            if (text.trim().length > 0) void submitNote();
           }
           if (e.key === "Escape") {
             setWritingText("");
+            setPostError(null);
             setPhase("idle");
           }
         }}
@@ -130,6 +169,34 @@ function GhostInput() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// ————————————————————————————————————————————————————————————
+// POST ERRORS — a single quiet line when the wall declines a note
+// (already left one, content rejected, session expired).
+// ————————————————————————————————————————————————————————————
+function PostError() {
+  const error = useWall((s) => s.postError);
+  const setPostError = useWall((s) => s.setPostError);
+  useEffect(() => {
+    if (!error) return;
+    const id = setTimeout(() => setPostError(null), 5200);
+    return () => clearTimeout(id);
+  }, [error, setPostError]);
+  return (
+    <AnimatePresence>
+      {error && (
+        <motion.div
+          className="post-error"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+        >
+          {error}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -181,6 +248,9 @@ export default function Experience() {
   const setPhase = useWall((s) => s.setPhase);
   const [mounted, setMounted] = useState(false);
 
+  // Restore session, load the wall, open the live feed.
+  useBootstrap();
+
   useEffect(() => {
     setMounted(true);
     // the darkness holds — then the room reveals itself
@@ -216,8 +286,11 @@ export default function Experience() {
           this subtree, so the scene is untouched by it. */}
       <HeroOverlay />
       <Entrance />
+      <AuthPanel />
       <PlusTag />
+      <ColorPicker />
       <GhostInput />
+      <PostError />
       <ExploreHint />
     </main>
   );
