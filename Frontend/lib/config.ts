@@ -18,7 +18,21 @@ const RAW_API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
 
-export const API_BASE_URL = RAW_API_URL.replace(/\/+$/, "");
+/**
+ * Normalise an API base to an ABSOLUTE origin, or "" for same-origin.
+ * A bare host like "api.example.com" (no scheme) must never be used directly:
+ * fetch()/WebSocket() would treat it as a path relative to the current page,
+ * producing URLs like https://my-app.vercel.app/api.example.com/auth/google.
+ * A schemeless value is assumed to be https (the only sane default in prod).
+ */
+function toAbsoluteOrigin(raw: string): string {
+  const s = raw.trim().replace(/\/+$/, "");
+  if (s === "") return ""; // same-origin (docker + nginx single-origin deploy)
+  if (/^https?:\/\//i.test(s)) return s; // already absolute
+  return `https://${s}`; // bare host → default to https
+}
+
+export const API_BASE_URL = toAbsoluteOrigin(RAW_API_URL);
 
 // Loud, actionable diagnostic for the most common production misconfiguration:
 // a localhost backend URL served from a real domain is always wrong (mixed
@@ -37,13 +51,22 @@ if (typeof window !== "undefined") {
 }
 
 /**
- * WebSocket origin for the live wall feed. Derived from API_BASE_URL by
- * default (http→ws, https→wss), overridable for split deployments.
+ * WebSocket URL for the live wall feed. Derived from API_BASE_URL by default
+ * (https→wss, http→ws), overridable via NEXT_PUBLIC_WS_URL for split hosts.
+ * Guarantees a ws/wss scheme so `new WebSocket()` never resolves it relative to
+ * the page (which would prepend the frontend origin, as with API_BASE_URL).
  */
 export const WS_URL = (() => {
-  const explicit = process.env.NEXT_PUBLIC_WS_URL;
-  if (explicit) return explicit.replace(/\/+$/, "") + "/ws/wall";
-  return API_BASE_URL.replace(/^http/, "ws") + "/ws/wall";
+  const explicit = process.env.NEXT_PUBLIC_WS_URL?.trim().replace(/\/+$/, "");
+  if (explicit) {
+    if (/^wss?:\/\//i.test(explicit)) return `${explicit}/ws/wall`;
+    if (/^https?:\/\//i.test(explicit))
+      return `${explicit.replace(/^http/i, "ws")}/ws/wall`;
+    return `wss://${explicit}/ws/wall`; // bare host → default to wss
+  }
+  if (API_BASE_URL === "") return "/ws/wall"; // same-origin: relative is correct
+  // API_BASE_URL is guaranteed absolute here (http/https), so this yields ws/wss.
+  return `${API_BASE_URL.replace(/^http/i, "ws")}/ws/wall`;
 })();
 
 /**
