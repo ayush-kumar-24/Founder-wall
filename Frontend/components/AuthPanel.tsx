@@ -85,13 +85,21 @@ export default function AuthPanel() {
   };
 
   // Render Google's official button when a real client id is configured.
+  // Depends on `phase` because the button's mount point (googleSlot) only
+  // exists once the panel is visible (phase === "idle"); without it the effect
+  // would run during the entrance, find no slot, and never re-run.
   useEffect(() => {
-    if (!authReady || user || !isGoogleConfigured() || !googleSlot.current) return;
+    if (!authReady || user || phase !== "idle" || !isGoogleConfigured() || !googleSlot.current) {
+      return;
+    }
+    // Avoid stacking a second button if the effect re-runs while the slot is
+    // already populated (e.g. phase cycling idle → writing → idle).
+    if (googleSlot.current.childElementCount > 0) return;
     renderGoogleButton(googleSlot.current, onCredential).catch(() => {
       setPostError("Google sign-in is unavailable right now.");
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authReady, user]);
+  }, [authReady, user, phase]);
 
   // The panel is present only while wandering — writing and flight are private.
   if (!authReady || phase !== "idle") return null;
