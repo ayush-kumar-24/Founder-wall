@@ -2,13 +2,39 @@
 // magic number, and so deployment can change behaviour without a code edit.
 
 /**
- * Base URL of the Founder Wall API.
- * Set NEXT_PUBLIC_API_URL at build time; the localhost default only serves
- * local development against `make run`.
+ * Base URL of the Founder Wall API. Set NEXT_PUBLIC_API_URL at BUILD time to
+ * your backend's public https URL (e.g. https://api.example.com). Two special
+ * cases:
+ *   - "" (empty) → same origin: the browser calls /auth, /stats, /ws/wall on
+ *     the host that served the page. Correct for the single-origin docker +
+ *     nginx deploy, where nginx proxies those paths to the backend.
+ *   - unset → only in a `next dev` (development) build does this fall back to
+ *     localhost. A PRODUCTION build never assumes localhost — it falls back to
+ *     same-origin, so a missing var can never silently target the visitor's
+ *     own machine or trigger mixed-content on an https page.
+ * On a split deploy (frontend on Vercel, backend elsewhere) this MUST be set.
  */
-export const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
-).replace(/\/+$/, "");
+const RAW_API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+
+export const API_BASE_URL = RAW_API_URL.replace(/\/+$/, "");
+
+// Loud, actionable diagnostic for the most common production misconfiguration:
+// a localhost backend URL served from a real domain is always wrong (mixed
+// content + no server at the visitor's host). Logged once, client-side only.
+if (typeof window !== "undefined") {
+  const host = window.location.hostname;
+  const servedLocally = host === "localhost" || host === "127.0.0.1";
+  if (!servedLocally && /localhost|127\.0\.0\.1/.test(API_BASE_URL)) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[Founder Wall] NEXT_PUBLIC_API_URL resolves to "${API_BASE_URL}" but the ` +
+        `app is served from "${host}". Set NEXT_PUBLIC_API_URL to your backend's ` +
+        `public https URL in the deployment environment and rebuild.`
+    );
+  }
+}
 
 /**
  * WebSocket origin for the live wall feed. Derived from API_BASE_URL by

@@ -44,7 +44,11 @@ export default function AuthPanel() {
     try {
       await signInWithGoogle(credential);
       await adoptSession();
-    } catch {
+    } catch (err) {
+      // Keep the real cause visible (network/CORS/backend errors) — the UI
+      // message is intentionally soft, but production debugging needs the truth.
+      // eslint-disable-next-line no-console
+      console.error("[Founder Wall] Google sign-in failed:", err);
       setPostError("Sign-in failed. Please try again.");
     } finally {
       setBusy(false);
@@ -57,7 +61,9 @@ export default function AuthPanel() {
     try {
       await signInDev();
       await adoptSession();
-    } catch {
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[Founder Wall] Dev sign-in failed:", err);
       setPostError("Sign-in failed. Please try again.");
     } finally {
       setBusy(false);
