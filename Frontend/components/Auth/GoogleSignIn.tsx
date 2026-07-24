@@ -43,7 +43,7 @@ export default function GoogleSignIn({
       await adopt();
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error("[Founder Wall] Google sign-in failed:", err);
+      console.error("[Founder's Wall] Google sign-in failed:", err);
       setError("Sign-in failed. Please try again.");
     } finally {
       setBusy(false);
@@ -58,7 +58,7 @@ export default function GoogleSignIn({
       await adopt();
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error("[Founder Wall] Dev sign-in failed:", err);
+      console.error("[Founder's Wall] Dev sign-in failed:", err);
       setError("Sign-in failed. Please try again.");
     } finally {
       setBusy(false);

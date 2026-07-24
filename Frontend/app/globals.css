@@ -106,6 +106,98 @@ body::after {
   align-items: center;
   gap: 14px;
 }
+
+/* Hamburger — hidden on desktop, shown on mobile (see the breakpoint below). */
+.nav-toggle {
+  display: none;
+  pointer-events: auto;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(90, 75, 55, 0.2);
+  background: rgba(231, 221, 198, 0.92);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.nav-toggle:hover { background: rgba(231, 221, 198, 1); }
+.nav-toggle__bars { display: flex; flex-direction: column; gap: 4px; }
+.nav-toggle__bars i {
+  display: block;
+  width: 20px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink-soft);
+}
+/* Transparent click-away layer that closes the menu. */
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  pointer-events: auto;
+}
+.nav-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 10px;
+  z-index: 60;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 172px;
+  max-width: min(72vw, 260px);
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(90, 75, 55, 0.18);
+  background: var(--paper);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  animation: modal-in 0.16s ease both;
+  text-align: left;
+}
+.nav-menu__name {
+  padding: 6px 12px 8px;
+  margin-bottom: 4px;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  border-bottom: 1px solid rgba(90, 75, 55, 0.14);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-menu__item {
+  font: inherit;
+  text-align: left;
+  padding: 11px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.nav-menu__item:hover { background: rgba(43, 36, 26, 0.06); }
+
+/* GoXL parent brand, pinned to the top-left corner on every device. */
+.brand-corner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  pointer-events: none; /* display-only; the wall pans underneath it */
+}
+.brand-logo {
+  height: clamp(30px, 4.2vw, 44px);
+  width: auto;
+  max-width: 44vw;
+  flex: none;
+  display: block;
+  object-fit: contain;
+}
 .wall-title {
   font-family: "Caveat", cursive;
   font-weight: 700;
@@ -113,6 +205,13 @@ body::after {
   line-height: 1;
   margin: 0;
   color: var(--ink);
+}
+.wall-subtitle {
+  margin: 3px 0 0;
+  font-size: clamp(0.82rem, 1.6vw, 0.98rem);
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  opacity: 0.85;
 }
 .wall-stats {
   display: flex;
@@ -162,7 +261,7 @@ body::after {
   color: var(--ink-soft);
 }
 .identity__name {
-  max-width: 26vw;
+  max-width: 150px; /* bounded so the corner never reaches the centred title */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -679,9 +778,7 @@ body::after {
 .google-signin { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .google-signin__error { margin: 0; font-size: 0.9rem; color: #a83a3a; }
 
-/* ---------- Header actions + Intro overlay ---------- */
-.header-actions { display: flex; align-items: center; gap: 16px; }
-
+/* ---------- Intro overlay ---------- */
 .intro-card {
   position: relative;
   background-color: var(--paper);
@@ -745,9 +842,39 @@ body::after {
 }
 .intro-cta { margin-top: 26px; padding: 12px 26px; font-size: 1.02rem; }
 
+/* ---------- Mobile/tablet navbar: collapse corner actions into a hamburger ----
+   Up to 860px the absolute corner could slide under the centred title (a long
+   name makes it worse), so we use the hamburger; real desktops (≥861px) keep
+   the original inline corner. ---------------------------------------------- */
+@media (max-width: 860px) {
+  .site-header { padding-top: calc(8px + var(--safe-top)); }
+  .header-corner {
+    top: calc(4px + var(--safe-top));
+    right: calc(8px + var(--safe-right));
+    gap: 8px;
+  }
+  /* Hide the inline about/identity; they live in the hamburger menu now. */
+  .header-corner__action { display: none; }
+  .nav-toggle { display: flex; }
+  .wall-title { font-size: clamp(1.65rem, 7vw, 2.3rem); }
+  .wall-stats { margin-top: 6px; }
+  .wall-stats__num { font-size: clamp(1.25rem, 5.4vw, 1.7rem); }
+  .wall-stats__label { font-size: 0.82rem; }
+  /* The bottom hint collides with the centred "+" tag on narrow screens; touch
+     users drag/pinch intuitively, so drop it on mobile. */
+  .wall-hint { display: none; }
+  /* Bigger touch targets for the zoom controls. */
+  .zoom-ctrl button { width: 42px; height: 42px; }
+}
+
 @media (max-width: 560px) {
-  .identity__name { max-width: 30vw; }
   .modal h2 { font-size: 1.7rem; }
+}
+
+@media (max-width: 480px) {
+  .overlay { padding: 14px; }
+  .intro-card { padding: 32px 22px 24px; }
+  .modal { padding: 30px 20px 22px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

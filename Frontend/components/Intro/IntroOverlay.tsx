@@ -39,7 +39,7 @@ export default function IntroOverlay({
         </button>
 
         <h1 id="intro-title" className="intro-title">
-          Founder Wall
+          Founder&apos;s Wall
         </h1>
         <p className="intro-sub">Your problems. Your questions. Zero judgment.</p>
 
