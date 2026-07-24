@@ -1,10 +1,25 @@
+# Production stack for Founder Wall on a single VPS.
+#   nginx (edge) → web (Next.js) + api (FastAPI) ; api → postgres + redis
+#   adminer for DB admin (not publicly exposed — reached via nginx or SSH tunnel)
+#
+# Bring up:  docker compose up --build -d
+# Env:       values come from ./.env (see .env.example). JWT_SECRET is required.
+
+# Shared log rotation so container logs can never fill the disk.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-founder}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-founder}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_DB: ${POSTGRES_DB:-founderwall}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -18,6 +33,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    logging: *default-logging
+    # AOF persistence so pub/sub-adjacent state (streams, counters) survives a restart.
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redisdata:/data
@@ -33,17 +50,22 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    logging: *default-logging
+    # Load all backend settings from .env; the explicit values below win for the
+    # ones that must point at in-cluster services (DB/Redis) or be forced.
+    env_file:
+      - .env
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-production}
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-founder}:${POSTGRES_PASSWORD:-founder}@db:5432/${POSTGRES_DB:-founderwall}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-founder}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@db:5432/${POSTGRES_DB:-founderwall}
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       LOG_JSON: ${LOG_JSON:-true}
-      # Nginx terminates the client connection; the app only ever sees it via
-      # the private network, so forwarded headers are authoritative here.
+      # Nginx terminates the client connection; the app only sees it via the
+      # private network, so forwarded headers are authoritative here.
       TRUST_PROXY_HEADERS: "true"
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
     depends_on:
@@ -63,30 +85,96 @@ services:
       dockerfile: Dockerfile
       args:
         # Empty = same origin: the browser calls /stats, /auth, /ws/wall on the
-        # host that served the page, and nginx routes them to the api. Set
-        # NEXT_PUBLIC_GOOGLE_CLIENT_ID to enable production Google Sign-In.
+        # host that served the page, and nginx routes them to the api. The Google
+        # client id is inlined at build time to render the real sign-in button.
         NEXT_PUBLIC_API_URL: ""
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
+    logging: *default-logging
     expose:
       - "3000"
+    networks: [founderwall]
+
+  adminer:
+    image: adminer:4
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: dracula
+    depends_on:
+      db:
+        condition: service_healthy
+    # Not published to the internet. Reach it via the nginx protected path added
+    # in Phase 5, or an SSH tunnel by uncommenting the localhost bind below:
+    #   ports: ["127.0.0.1:8080:8080"]  →  ssh -L 8080:localhost:8080 user@vps
+    expose:
+      - "8080"
     networks: [founderwall]
 
   nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/maintenance:/var/www/maintenance:ro
+      # Let's Encrypt certs (read-only) + the ACME webroot, shared with certbot.
+      - certbot_etc:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+      # If you enable the public Adminer route, also mount its password file:
+      # - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+    # Reload every 6h so renewed certs are picked up without a manual restart;
+    # nginx itself runs in the foreground.
+    command:
+      - sh
+      - -c
+      - |
+        while :; do sleep 6h & wait $${!}; nginx -s reload; done &
+        exec nginx -g 'daemon off;'
     depends_on:
-      - api
-      - web
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+      adminer:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health/live >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks: [founderwall]
+
+  # TLS certificates via Let's Encrypt. Renews every 12h (a no-op until a cert is
+  # within 30 days of expiry); nginx's reload loop then serves the new cert.
+  # The FIRST certificate is issued by ./init-letsencrypt.sh (see Phase 6 docs).
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - certbot_etc:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint:
+      - sh
+      - -c
+      - |
+        trap exit TERM;
+        while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet;
+          sleep 12h & wait $${!};
+        done
     networks: [founderwall]
 
 volumes:
   pgdata:
   redisdata:
+  certbot_etc:
+  certbot_www:
 
 networks:
   founderwall:

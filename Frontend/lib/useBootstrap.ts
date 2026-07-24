@@ -14,6 +14,7 @@ import { connectWall } from "./ws";
 
 export function useBootstrap(): void {
   const setNotes = useWall((s) => s.setNotes);
+  const setNotesLoaded = useWall((s) => s.setNotesLoaded);
   const upsertNote = useWall((s) => s.upsertNote);
   const removeNoteById = useWall((s) => s.removeNoteById);
   const setUser = useWall((s) => s.setUser);
@@ -46,21 +47,21 @@ export function useBootstrap(): void {
       try {
         const notes = await fetchAllNotes(controller.signal);
         if (cancelled) return;
-        const now = Date.now();
-        setNotes(notes.map((n) => apiNoteToNoteData(n, now)));
+        setNotes(notes.map((n) => apiNoteToNoteData(n)));
       } catch {
         /* an empty or unreachable wall simply shows nothing */
+      } finally {
+        if (!cancelled) setNotesLoaded(true);
       }
     })();
 
     // — the live feed —
     const disconnect = connectWall((event) => {
       if (cancelled) return;
-      const now = Date.now();
       switch (event.type) {
         case "note.created":
         case "note.updated":
-          upsertNote(apiNoteToNoteData(event.note, now));
+          upsertNote(apiNoteToNoteData(event.note));
           break;
         case "note.deleted":
           removeNoteById(numericId(event.id));

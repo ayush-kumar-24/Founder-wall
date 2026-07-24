@@ -31,7 +31,9 @@ interface WallState {
   // rebuild cleanly (its GPU buffers are sized to the note count at mount).
   notes: NoteData[];
   notesVersion: number;
+  notesLoaded: boolean; // the initial wall fetch has settled (for skeleton vs empty)
   setNotes: (notes: NoteData[]) => void;
+  setNotesLoaded: (loaded: boolean) => void;
   upsertNote: (note: NoteData) => void;
   removeNoteById: (numericId: number) => void;
 
@@ -67,8 +69,10 @@ export const useWall = create<WallState>((set) => ({
 
   notes: [],
   notesVersion: 0,
+  notesLoaded: false,
   setNotes: (notes) =>
     set((s) => ({ notes, notesVersion: s.notesVersion + 1 })),
+  setNotesLoaded: (loaded) => set({ notesLoaded: loaded }),
   upsertNote: (note) =>
     set((s) => {
       const i = s.notes.findIndex((n) => n.id === note.id);

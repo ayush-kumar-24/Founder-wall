@@ -2,430 +2,858 @@
 @tailwind components;
 @tailwind utilities;
 
-/* The palette, named. These were already the world's colours — they are
-   written down here so nothing has to guess them again. */
+/* ============================================================
+   FOUNDER'S WALL — paper + sticky-note aesthetic with real depth.
+   Palette and feel from the design reference; depth (perspective,
+   tilt, layered shadow) added in CSS so the wall keeps a 3D quality
+   without a WebGL scene.
+   ============================================================ */
 :root {
-  --ink: 207, 198, 180; /* parchment text, as RGB for alpha use */
-  --umber: #100d0b; /* warm umber-dark — never pure black */
-  --shadow: 10, 8, 6; /* the darkness at the edges */
-  /* The live signal. The wall has no green in it, so this is a sage pulled
-     most of the way toward the room's warmth — alive, never a status LED. */
-  --live: #8c9a7b;
-  --serif: ui-serif, Georgia, serif;
-  /* Safe-area insets, resolved once. Zero on hardware without cutouts, so
-     these are free to use everywhere. */
+  --paper: #ece0c4;
+  --paper-hi: #f3ead4;
+  --ink: #2b241a;
+  --ink-soft: #463d2d;
+  --ink-faint: #6b6048;
+
+  /* Note papers (the reference five) + a neutral sixth for legacy notes. */
+  --yellow: #f3d15e;
+  --pink: #f0a49d;
+  --purple: #c8b4e3;
+  --blue: #a9cbe0;
+  --green: #b6ce9c;
+  --slate: #cdc7b6;
+  --tape: #efe8cf;
+
   --safe-top: env(safe-area-inset-top, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 html,
 body {
-  /* 100dvh tracks the *dynamic* viewport, so the wall always fills the screen
-     as the mobile address bar expands and collapses. vh is the fallback for
-     browsers without dvh (older Safari/Firefox). */
-  height: 100vh;
-  height: 100dvh;
-  min-height: 100vh;
-  min-height: 100dvh;
-  width: 100vw;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  background: var(--umber);
-  color: rgb(var(--ink));
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Kalam", ui-rounded, "Comic Sans MS", cursive;
   -webkit-font-smoothing: antialiased;
-  user-select: none;
-  /* No rubber-band scroll or pull-to-refresh fighting the camera on touch. */
-  overscroll-behavior: none;
-  touch-action: none;
+  text-rendering: optimizeLegibility;
 }
 
-canvas {
-  display: block;
-  outline: none;
-  /* Belt-and-braces: touch gestures on the canvas drive the camera, never the
-     page. The rig also sets this on the element; keeping it here covers the
-     first frame before the rig mounts. */
-  touch-action: none;
-}
-
-/* The "+" paper tag — a small round unbleached tag, half in shadow */
-.plus-tag {
-  position: fixed;
-  /* Lift clear of the home indicator / gesture bar on notched phones. */
-  bottom: calc(6vh + var(--safe-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  /* 44×44 is the minimum comfortable touch target; never shrinks below it. */
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: #e7ddc6;
-  box-shadow:
-    0 2px 10px rgba(0, 0, 0, 0.55),
-    inset 0 -2px 4px rgba(90, 75, 55, 0.25);
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #4c443a;
-  font-size: 20px;
-  font-weight: 300;
-  line-height: 1;
-  animation: tagFloat 6s ease-in-out infinite;
-  transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-.plus-tag:hover {
-  transform: translateX(-50%) rotate(4deg);
-}
-@keyframes tagFloat {
-  0%, 100% { margin-bottom: 0; }
-  50% { margin-bottom: 3px; }
-}
-
-/* The whisper — the only interface text in the world */
-.whisper {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(12vh + var(--safe-bottom));
-  max-width: min(90vw, 30rem);
-  text-align: center;
-  font-family: ui-serif, Georgia, serif;
-  font-size: clamp(12px, 3.4vw, 13px);
-  letter-spacing: 0.06em;
-  color: rgba(207, 198, 180, 0.4);
-  pointer-events: none;
-}
-
-/* ————————————————————————————————————————————————————————————
-   THE HERO — words resting on the room, not a panel bolted over it.
-   No card, no border, no fill. Legibility comes from a breath of shadow
-   behind the glyphs, so every note stays visible straight through.
-   ———————————————————————————————————————————————————————————— */
-/* The scrim. The wall is warm and often bright, so light type alone loses.
-   This is a full-bleed gradient — not a card, not a panel, no edges — the same
-   device a title sequence uses: the top of the frame is weighted so words hold,
-   and every note stays visible straight through it. */
-.hero-scrim {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: min(48vh, 30rem);
-  z-index: 34;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgba(var(--shadow), 0.5) 0%,
-    rgba(var(--shadow), 0.36) 34%,
-    rgba(var(--shadow), 0.15) 66%,
-    rgba(var(--shadow), 0) 100%
-  );
-}
-
-.hero {
-  position: fixed;
-  /* Sit below the notch / Dynamic Island, and clamp the width against the
-     side safe areas so a landscape phone's rounded corners never clip a word. */
-  top: calc(clamp(2.75rem, 7vh, 5.5rem) + var(--safe-top));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 35; /* above the vignette (30), beneath the entrance (40) */
-  width: min(600px, calc(100vw - 3rem - var(--safe-left) - var(--safe-right)));
-  text-align: center;
-  /* The overlay is never in the input path: drag, hover and note selection
-     all pass straight through to the scene's window listeners. */
-  pointer-events: none;
-}
-
-.hero-title {
-  margin: 0;
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: clamp(1.9rem, 5.1vw, 3.05rem);
-  line-height: 1.12;
-  letter-spacing: -0.015em;
-  color: rgba(238, 231, 216, 0.97);
-  /* Not a glow — the shadow a physical object casts on the air behind it. */
-  text-shadow:
-    0 1px 34px rgba(var(--shadow), 0.9),
-    0 1px 3px rgba(var(--shadow), 0.65);
-}
-
-.hero-subtitle {
-  margin: clamp(0.85rem, 1.9vh, 1.25rem) auto 0;
-  max-width: 34rem;
-  font-family: var(--serif);
-  font-size: clamp(0.875rem, 1.5vw, 1.0625rem);
-  line-height: 1.6;
-  letter-spacing: 0.012em;
-  color: rgba(var(--ink), 0.82);
-  text-shadow:
-    0 1px 24px rgba(var(--shadow), 0.9),
-    0 1px 3px rgba(var(--shadow), 0.55);
-}
-
-.hero-live {
-  position: relative;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 1.5rem; /* reserved, so the figure's arrival shifts nothing */
-  margin-top: clamp(1.35rem, 3.2vh, 2.1rem);
-  font-family: var(--serif);
-  font-size: clamp(0.8125rem, 1.3vw, 0.9375rem);
-  letter-spacing: 0.045em;
-  color: rgba(var(--ink), 0.86);
-  text-shadow:
-    0 1px 20px rgba(var(--shadow), 0.95),
-    0 1px 3px rgba(var(--shadow), 0.7);
-}
-
-/* This line sits below the scrim's strongest band, on the busiest part of the
-   wall — the one place light type loses. So it carries its own pool of shade:
-   a soft ellipse with no edge anywhere, which lifts the figure off the paper
-   without becoming a chip, a pill, or a badge. */
-.hero-live::before {
+/* The paper grain — a fixed, multiply-blended dot field. */
+body::before {
   content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  /* Wider than the text so the falloff is invisible, but never wider than the
-     screen — the gradient must fade out, never meet an edge. */
-  width: min(calc(100% + 3rem), 100vw);
-  height: 2.7rem;
-  z-index: -1;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
   pointer-events: none;
-  /* Weighted at the centre and gone well before the edge: enough to seat the
-     figure, never enough to read as a band lying on the wall. */
+  opacity: 0.45;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+  mix-blend-mode: multiply;
+}
+
+/* A soft warm vignette so the wall feels lit from the front. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background: radial-gradient(
-    ellipse at center,
-    rgba(var(--shadow), 0.46) 0%,
-    rgba(var(--shadow), 0.3) 38%,
-    rgba(var(--shadow), 0.09) 62%,
-    rgba(var(--shadow), 0) 78%
+    120% 90% at 50% 30%,
+    rgba(255, 250, 235, 0.35) 0%,
+    rgba(0, 0, 0, 0) 55%,
+    rgba(40, 30, 12, 0.12) 100%
   );
 }
 
-.hero-live-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex: none;
-  align-self: center;
-  background: var(--live);
-  box-shadow:
-    0 0 10px 2px rgba(140, 154, 123, 0.55),
-    0 0 3px 0 rgba(140, 154, 123, 0.9);
-  /* A breath, not a blink. Same tempo as the room. */
-  animation: livePulse 3.4s ease-in-out infinite;
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: calc(26px + var(--safe-top)) clamp(16px, 4vw, 40px) 90px;
 }
 
-/* The figure is the point of the sentence — the proof that real people are
-   on the other side of this. It reads brightest; the words around it stay
-   quiet and let it carry. */
-.hero-live-number {
-  font-size: 1.18em;
-  font-weight: 500;
-  letter-spacing: 0.005em;
-  color: rgba(248, 244, 234, 0.99);
-  font-variant-numeric: tabular-nums; /* no width jitter while counting */
-  text-shadow:
-    0 1px 16px rgba(var(--shadow), 0.95),
-    0 1px 3px rgba(var(--shadow), 0.8);
-}
-
-@keyframes livePulse {
-  0%, 100% { opacity: 0.45; transform: scale(0.92); }
-  50% { opacity: 1; transform: scale(1); }
-}
-
-/* Tablet — the same composition, a touch quieter. */
-@media (max-width: 900px) {
-  .hero {
-    top: clamp(2.25rem, 5.5vh, 4rem);
-  }
-}
-
-/* Mobile — the wall must stay the subject. Tighter type, higher on screen,
-   and the subtitle narrows rather than wrapping into a paragraph. */
-@media (max-width: 560px) {
-  .hero {
-    top: 2.25rem;
-    width: calc(100vw - 2.5rem);
-  }
-  .hero-subtitle {
-    max-width: 24rem;
-    line-height: 1.55;
-  }
-  .hero-live {
-    margin-top: 1.1rem;
-  }
-}
-
-/* Short landscape screens: never let the words crowd the horizon. */
-@media (max-height: 520px) {
-  .hero {
-    top: 1.25rem;
-  }
-  .hero-subtitle,
-  .hero-live {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-live-dot {
-    animation: none;
-    opacity: 0.85;
-  }
-}
-
-/* Hidden textarea that catches keystrokes during the writing moment */
-.ghost-input {
-  position: fixed;
-  opacity: 0;
-  left: 50%;
-  top: 50%;
-  width: 10px;
-  height: 10px;
-  pointer-events: none;
-}
-
-/* ————————————————————————————————————————————————————————————
-   IDENTITY — an invitation at the base of the wall when signed out,
-   a small corner chip when signed in. Never a panel, never a border.
-   ———————————————————————————————————————————————————————————— */
-.auth-invite {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(5.5vh + var(--safe-bottom));
-  z-index: 35;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
-}
-.auth-invite__line {
-  font-family: var(--serif);
-  font-size: clamp(12px, 3.4vw, 13px);
-  letter-spacing: 0.06em;
-  color: rgba(var(--ink), 0.5);
-  text-shadow: 0 1px 16px rgba(var(--shadow), 0.9);
-}
-.auth-invite__dev {
-  font-family: var(--serif);
-  font-size: 13px;
-  letter-spacing: 0.05em;
-  color: #4c443a;
-  background: #e7ddc6;
-  border: none;
-  border-radius: 999px;
-  padding: 0.55rem 1.4rem;
-  cursor: pointer;
-  box-shadow:
-    0 2px 12px rgba(0, 0, 0, 0.5),
-    inset 0 -2px 4px rgba(90, 75, 55, 0.22);
-  transition: transform 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-.auth-invite__dev:hover {
-  transform: translateY(-1px);
-}
-.auth-invite__dev:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.auth-chip {
-  position: fixed;
-  left: calc(1.4rem + var(--safe-left));
-  bottom: calc(1.4rem + var(--safe-bottom));
-  z-index: 35;
+/* ---------- Header ---------- */
+.site-header {
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  font-family: var(--serif);
-  font-size: 12.5px;
-  letter-spacing: 0.03em;
-  color: rgba(var(--ink), 0.62);
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 8px;
+  flex-wrap: wrap;
 }
-.auth-chip__name {
-  color: rgba(var(--ink), 0.82);
-  max-width: 40vw;
+
+.logo {
+  font-weight: 700;
+  font-size: 1.3rem;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+  letter-spacing: 0.01em;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+.identity__name {
+  max-width: 34vw;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.auth-chip__link {
-  background: none;
-  border: none;
-  padding: 0;
+
+/* Buttons */
+.btn {
+  font-family: inherit;
   cursor: pointer;
-  font: inherit;
-  letter-spacing: 0.05em;
-  color: rgba(var(--ink), 0.42);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+.btn:focus-visible {
+  outline: 3px solid #8a7c52;
+  outline-offset: 2px;
+}
+.btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 11px 20px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.18);
+}
+.btn-ghost {
+  background: none;
+  color: var(--ink);
+  padding: 6px 4px;
+  border-radius: 6px;
+  opacity: 0.85;
+}
+.btn-ghost:hover {
+  opacity: 1;
   text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color 0.3s ease;
+  text-underline-offset: 4px;
 }
-.auth-chip__link:hover {
-  color: rgba(var(--ink), 0.72);
-}
-.auth-chip__link:disabled {
-  opacity: 0.5;
+.btn:disabled {
+  opacity: 0.55;
   cursor: default;
+  transform: none;
 }
 
-/* The colour choice — six papers in a quiet row while writing. */
-.color-picker {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(18vh + var(--safe-bottom));
-  z-index: 36;
-  display: flex;
-  gap: 0.7rem;
+/* ---------- Hero ---------- */
+.hero {
+  text-align: center;
+  padding: 30px 0 6px;
 }
-.color-picker__dot {
+.hero-title {
+  font-family: "Caveat", cursive;
+  font-weight: 700;
+  font-size: clamp(3rem, 7.5vw, 5.6rem);
+  line-height: 1;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+.hero-title .flourish {
+  font-size: 0.42em;
+  opacity: 0.65;
+}
+.hero-swash {
+  display: block;
+  width: min(500px, 65%);
+  margin: 4px auto 20px;
+}
+.hero-sub {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+}
+.hero-count {
+  font-size: 0.92rem;
+  color: var(--ink-faint);
+  margin-top: 6px;
+  min-height: 1.2em;
+}
+.hero-count .live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #7f9a5f;
+  margin-right: 7px;
+  vertical-align: middle;
+  box-shadow: 0 0 8px 1px rgba(127, 154, 95, 0.5);
+  animation: livePulse 3.4s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ---------- Wall (perspective board) ----------
+   The wall is a 3D stage: children are placed on a slightly receded
+   plane so hover/tilt in later phases reads as real depth. */
+.wall {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 34px 26px;
+  padding: 44px 6px 20px;
+  perspective: 1400px;
+  perspective-origin: 50% 40%;
+}
+
+/* A sheet of paper on a wall — solid colour + a soft top-lit sheen and a faint
+   aged wash, so it reads as real stock rather than a flat rectangle. Colour is
+   set with background-color so these overlays survive. */
+.note {
+  position: relative;
+  width: 210px;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 26px 20px 36px;
+  font-size: 1.05rem;
+  line-height: 1.42;
+  color: #2b2417;
+  background-color: var(--slate);
+  background-image:
+    radial-gradient(
+      135% 90% at 26% -5%,
+      rgba(255, 255, 255, 0.32),
+      rgba(255, 255, 255, 0) 55%
+    ),
+    linear-gradient(158deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.08));
+  border-radius: 2px 3px 2px 3px;
+  transform-style: preserve-3d;
+  transform: rotate(var(--r, 0deg)) translateZ(0);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.05),
+    0 13px 20px -12px rgba(30, 20, 5, 0.5),
+    0 4px 7px rgba(30, 20, 5, 0.14);
+  transition:
+    transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.24s ease,
+    opacity 0.4s ease;
+  will-change: transform;
+}
+/* Freshly-pinned notes get a one-shot drop-in via a class that's removed after
+   mount (see StickyNote). Base state is fully visible, so a note can NEVER be
+   stuck hidden the way an opacity:0 keyframe can. */
+.note.note--entering {
+  opacity: 0;
+  transform: translateY(-14px) rotate(var(--r, 0deg)) scale(0.94);
+}
+.note.yellow {
+  background-color: var(--yellow);
+}
+.note.pink {
+  background-color: var(--pink);
+}
+.note.purple {
+  background-color: var(--purple);
+}
+.note.blue {
+  background-color: var(--blue);
+}
+.note.green {
+  background-color: var(--green);
+}
+.note.slate {
+  background-color: var(--slate);
+}
+
+/* Peeled bottom-right corner — a small lifted fold with its own shadow. */
+.note::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0) 46%,
+    rgba(0, 0, 0, 0.12) 47%,
+    rgba(255, 255, 255, 0.35) 55%,
+    rgba(0, 0, 0, 0) 72%
+  );
+  border-bottom-right-radius: 3px;
+  pointer-events: none;
+}
+
+/* Lift toward the viewer (real depth via the wall's perspective), and settle
+   most of the tilt out — like picking a note off the wall to read it. */
+.note:hover,
+.note:focus-within {
+  transform: rotate(calc(var(--r, 0deg) * 0.25)) translateZ(34px)
+    translateY(-4px) !important;
+  box-shadow:
+    0 2px 2px rgba(0, 0, 0, 0.06),
+    0 26px 34px -14px rgba(30, 20, 5, 0.52),
+    0 8px 12px rgba(30, 20, 5, 0.18);
+  z-index: 10;
+}
+
+.note__text {
+  position: relative;
+  white-space: pre-wrap;
+  word-break: break-word;
+  z-index: 1;
+}
+
+/* Hand-drawn underline flourish under some notes (deterministic, cosmetic). */
+.note__underline {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 56%;
+  height: 3px;
+  transform: translateX(-50%) rotate(-0.6deg);
+  background: currentColor;
+  opacity: 0.4;
+  border-radius: 2px;
+}
+
+/* Translucent washi tape — a torn strip lit from the front. */
+.note__tape {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 58px;
+  height: 24px;
+  transform: translateX(-50%) rotate(var(--tape-rot, -3deg)) translateZ(10px);
+  background-color: rgba(239, 232, 207, 0.68);
+  background-image: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.45),
+    rgba(255, 255, 255, 0.06) 60%
+  );
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.14);
+}
+/* Frayed tape edges. */
+.note__tape::before,
+.note__tape::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: inherit;
+}
+.note__tape::before {
+  left: -3px;
+  clip-path: polygon(100% 0, 0 22%, 100% 45%, 0 70%, 100% 100%);
+}
+.note__tape::after {
+  right: -3px;
+  clip-path: polygon(0 0, 100% 22%, 0 45%, 100% 70%, 0 100%);
+}
+
+/* ---------- States ---------- */
+.empty-state {
+  width: 100%;
+  text-align: center;
+  font-size: 1.05rem;
+  color: #7a6f52;
+  padding: 48px 20px;
+}
+.empty-state__title {
+  font-family: "Caveat", cursive;
+  font-size: 1.9rem;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+}
+
+.skeleton-wall {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 34px 26px;
+  padding: 44px 6px 20px;
+}
+.skeleton-note {
+  width: 210px;
+  min-height: 180px;
+  border-radius: 2px;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.15) 30%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.15) 70%
+  );
+  background-color: #ded1b3;
+  background-size: 200% 100%;
+  animation: shimmer 1.3s infinite linear;
+  box-shadow: 0 8px 14px -8px rgba(30, 20, 5, 0.3);
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* Screen-reader-only helper. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- 404 ---------- */
+.notfound {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+}
+.notfound__note {
+  transform: rotate(-3deg);
+  margin-bottom: 8px;
+}
+.notfound__code {
+  font-family: "Caveat", cursive;
+  font-size: clamp(3rem, 12vw, 5rem);
+  margin: 0;
+  line-height: 1;
+}
+.notfound__sub {
+  margin: 0;
+  color: var(--ink-faint);
+  font-size: 1.05rem;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+/* Ultrawide / large screens: let the wall use more of the space. */
+@media (min-width: 1800px) {
+  .page {
+    max-width: 1560px;
+  }
+  .wall {
+    gap: 40px 32px;
+  }
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  .wall {
+    gap: 28px 22px;
+  }
+  .note,
+  .skeleton-note {
+    width: 190px;
+    min-height: 168px;
+  }
+  .hero {
+    padding: 20px 0 6px;
+  }
+}
+
+/* Mobile: a clean two-column wall. */
+@media (max-width: 560px) {
+  .page {
+    padding: calc(18px + var(--safe-top)) 14px calc(70px + var(--safe-bottom));
+  }
+  .hero-title .flourish {
+    display: none;
+  }
+  .hero-sub {
+    font-size: 1rem;
+  }
+  .wall {
+    gap: 20px 14px;
+    padding: 30px 2px 16px;
+  }
+  .note,
+  .skeleton-note {
+    width: calc(50% - 7px);
+    min-width: 0;
+    min-height: 158px;
+    padding: 22px 14px 32px;
+    font-size: 0.98rem;
+  }
+  .site-header {
+    gap: 10px;
+  }
+  .identity__name {
+    max-width: 40vw;
+  }
+  .modal {
+    padding: 30px 20px 20px;
+  }
+  .modal h2 {
+    font-size: 1.7rem;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  .note,
+  .skeleton-note {
+    font-size: 0.92rem;
+    padding: 20px 10px 30px;
+  }
+  .swatches {
+    gap: 9px;
+  }
+  .swatch {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* Touch devices: hover-only affordances must be reachable, and a "sticky
+   hover" tap must not leave a note stuck in its lifted state. */
+@media (hover: none) {
+  .note.user-note .remove-btn {
+    display: flex;
+    width: 26px;
+    height: 26px;
+  }
+  .like-btn {
+    padding: 6px 8px;
+  }
+  .note:hover {
+    transform: rotate(var(--r, 0deg)) translateZ(0);
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.05),
+      0 13px 20px -12px rgba(30, 20, 5, 0.5),
+      0 4px 7px rgba(30, 20, 5, 0.14);
+  }
+}
+
+/* ---------- Like & remove ---------- */
+.like-btn {
+  position: absolute;
+  bottom: 10px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: #4a4230;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  opacity: 0.85;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.like-btn:hover {
+  transform: scale(1.12);
+  opacity: 1;
+}
+.like-btn:focus-visible {
+  outline: 3px solid #8a7c52;
+  outline-offset: 2px;
+}
+.like-btn .heart {
+  display: inline-block;
+  font-size: 1.05rem;
+  line-height: 1;
+  transform-origin: center;
+}
+.like-btn .heart::before {
+  content: "♡";
+}
+.like-btn.liked .heart::before {
+  content: "♥";
+  color: #a83a3a;
+}
+/* A little pop when a like registers. */
+.like-btn.liked .heart {
+  animation: heart-pop 0.32s ease;
+}
+@keyframes heart-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.like-btn:active {
+  transform: scale(0.94);
+}
+
+.remove-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1.5px solid transparent;
+  border: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.85rem;
+  line-height: 1;
   cursor: pointer;
-  padding: 0;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
-  transition:
-    transform 0.25s ease,
-    border-color 0.25s ease;
+  display: none;
+  align-items: center;
+  justify-content: center;
 }
-.color-picker__dot:hover {
-  transform: scale(1.12);
-}
-.color-picker__dot--on {
-  border-color: rgba(238, 231, 216, 0.95);
-  transform: scale(1.15);
+.note.user-note:hover .remove-btn,
+.note.user-note:focus-within .remove-btn {
+  display: flex;
 }
 
-/* A single quiet line when the wall declines a note. */
-.post-error {
+/* ---------- Sign-in ---------- */
+.google-signin {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.google-signin__error {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #a83a3a;
+}
+
+.empty-state__cta {
+  margin-top: 18px;
+}
+
+/* ---------- Modal ---------- */
+.overlay {
   position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(20, 16, 8, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: overlay-in 0.18s ease both;
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+.modal {
+  position: relative;
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(120% 80% at 30% -10%, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 55%),
+    radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: auto, 3px 3px;
+  width: 100%;
+  max-width: 440px;
+  border-radius: 8px;
+  padding: 34px 26px 24px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 20px 50px rgba(0, 0, 0, 0.35);
+  animation: modal-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+/* A strip of tape pinning the modal to the screen. */
+.modal::before {
+  content: "";
+  position: absolute;
+  top: -12px;
   left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(11vh + var(--safe-bottom));
-  z-index: 37;
-  max-width: min(90vw, 32rem);
-  text-align: center;
-  font-family: var(--serif);
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  color: rgba(224, 196, 178, 0.9);
-  text-shadow: 0 1px 16px rgba(var(--shadow), 0.9);
-  pointer-events: none;
+  width: 92px;
+  height: 26px;
+  transform: translateX(-50%) rotate(-2.2deg);
+  background-color: rgba(239, 232, 207, 0.72);
+  background-image: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0.05) 60%
+  );
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.14);
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+}
+.modal h2 {
+  font-family: "Caveat", cursive;
+  font-size: 2rem;
+  margin: 0 0 4px;
+}
+.modal .hint {
+  margin: 0 0 18px;
+  font-size: 0.95rem;
+  color: #5a5138;
+  line-height: 1.5;
+}
+.modal textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  border: 1.5px solid #c9bc98;
+  border-radius: 6px;
+  padding: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  background: #fdf9ec;
+  color: var(--ink);
+}
+.modal textarea:focus {
+  outline: 2px solid #8a7c52;
+  outline-offset: 1px;
+}
+.char-count {
+  text-align: right;
+  font-size: 0.8rem;
+  color: #8a7c5c;
+  margin-top: 4px;
+}
+.swatches {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0 20px;
+}
+.swatch {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.4) inset;
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.18s ease;
+}
+.swatch:hover {
+  transform: scale(1.12) rotate(-3deg);
+}
+.swatch.selected {
+  border-color: var(--ink);
+  transform: scale(1.14);
+}
+/* Tick on the selected swatch. */
+.swatch.selected::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(43, 36, 26, 0.75);
+}
+.swatch:focus-visible {
+  outline: 3px solid #8a7c52;
+  outline-offset: 2px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--ink);
+  opacity: 0.6;
+  line-height: 1;
+}
+.modal-close:hover {
+  opacity: 1;
+}
+.modal-error {
+  margin: 4px 0 14px;
+  font-size: 0.9rem;
+  color: #a83a3a;
+}
+.modal-existing__preview {
+  width: 100%;
+  min-height: auto;
+  margin: 6px 0 18px;
+  padding: 18px;
+  transform: rotate(-1.5deg);
+  cursor: default;
+}
+.btn-secondary {
+  background: none;
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  padding: 10px 18px;
+}
+.btn-secondary:hover {
+  background: rgba(43, 36, 26, 0.06);
+}
+
+/* Respect reduced-motion globally. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

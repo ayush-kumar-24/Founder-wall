@@ -10,16 +10,17 @@ checked), so the frontend's "enter as a founder" dev sign-in works without a
 real Google client. This is a development convenience only; production runs the
 container, which refuses insecure tokens.
 
-    python scripts/devserver.py            # sqlite at <temp>/founderwall-dev.db
+    python scripts/devserver.py            # persistent sqlite at backend/founderwall-local.db
     python scripts/devserver.py --fresh    # wipe that db first
+    FW_LOCAL_DB=/path/to.db python scripts/devserver.py   # custom location
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
+import os
 import sys
-import tempfile
 from pathlib import Path
 
 import fakeredis.aioredis as fakeaioredis
@@ -32,7 +33,10 @@ from app.main import create_app  # noqa: E402
 from app.shared.config import Settings  # noqa: E402
 from app.shared.database import Base, Database  # noqa: E402
 
-DB_PATH = Path(tempfile.gettempdir()) / "founderwall-dev.db"
+# A PERMANENT local database file, in the project by default so data survives
+# restarts and lives only on this machine. Override with FW_LOCAL_DB.
+_DEFAULT_DB = Path(__file__).resolve().parents[1] / "founderwall-local.db"
+DB_PATH = Path(os.environ.get("FW_LOCAL_DB", _DEFAULT_DB))
 
 
 async def main(fresh: bool) -> int:
