@@ -36,9 +36,11 @@ RUN addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
 # The standalone output carries its own minimal node_modules; static assets and
-# the server entrypoint are copied alongside it.
+# the server entrypoint are copied alongside it. `public/` is NOT included in the
+# standalone bundle by Next, so it must be copied explicitly (serves /*.png etc.).
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
 USER nextjs
 EXPOSE 3000
