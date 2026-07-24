@@ -26,6 +26,7 @@ export function useWallActions() {
   const upsertNote = useWall((s) => s.upsertNote);
   const removeNoteById = useWall((s) => s.removeNoteById);
   const setMyNote = useWall((s) => s.setMyNote);
+  const setJustPostedId = useWall((s) => s.setJustPostedId);
 
   const post = useCallback(
     async (content: string, color: NoteColor): Promise<PostResult> => {
@@ -34,8 +35,11 @@ export function useWallActions() {
       try {
         const api = await createNote(text, color);
         setMyNote(api);
+        const nd = apiNoteToNoteData(api);
+        // Mark it as just-posted so the wall plays the fly-in for it.
+        setJustPostedId(nd.id);
         // Also arrives via the WebSocket; upsert dedupes by id, so no double.
-        upsertNote(apiNoteToNoteData(api));
+        upsertNote(nd);
         return { ok: true };
       } catch (e) {
         if (e instanceof NoteExistsError) {
@@ -52,7 +56,7 @@ export function useWallActions() {
         return { ok: false, error: "Could not pin your note. Try again." };
       }
     },
-    [setMyNote, upsertNote]
+    [setMyNote, upsertNote, setJustPostedId]
   );
 
   const remove = useCallback(

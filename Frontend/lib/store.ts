@@ -42,6 +42,11 @@ interface WallState {
   pendingNote: NoteData | null;
   setPendingNote: (n: NoteData | null) => void;
 
+  // The just-posted note's id — StickyNote plays the fly-in animation for it,
+  // then it's cleared.
+  justPostedId: number | null;
+  setJustPostedId: (id: number | null) => void;
+
   // — identity —
   user: UserProfile | null;
   authReady: boolean; // the initial session check has settled
@@ -95,6 +100,9 @@ export const useWall = create<WallState>((set) => ({
   pendingNote: null,
   setPendingNote: (n) => set({ pendingNote: n }),
 
+  justPostedId: null,
+  setJustPostedId: (id) => set({ justPostedId: id }),
+
   user: null,
   authReady: false,
   myNote: null,
@@ -105,3 +113,9 @@ export const useWall = create<WallState>((set) => ({
   postError: null,
   setPostError: (m) => set({ postError: m }),
 }));
+
+// Dev-only debug handle (stripped from production builds) — lets the wall be
+// stress-tested from the console, e.g. window.__wall.getState().setNotes(...).
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  (window as unknown as { __wall?: typeof useWall }).__wall = useWall;
+}
