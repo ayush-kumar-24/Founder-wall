@@ -98,7 +98,7 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
       )}
 
       <h1 className="wall-title">Founder&apos;s Wall</h1>
-      <p className="wall-subtitle">GoXL&apos;s Initiative</p>
+      <p className="wall-subtitle">An Initiative by GoXL</p>
 
       <p className="wall-stats" aria-live="polite">
         <span className="wall-stats__group">
