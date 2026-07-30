@@ -13,9 +13,8 @@ from app.wall.models import NoteColor
 class NoteCreate(BaseModel):
     content: str = Field(min_length=1, max_length=280)
     color: NoteColor = NoteColor.AMBER
-    # Opt-in: when true, the author's name is snapshotted onto the note and
-    # shown publicly. Defaults to anonymous.
-    reveal_identity: bool = False
+    # Optional name the poster types. Empty/blank → anonymous.
+    author_name: str | None = Field(default=None, max_length=80)
 
     @field_validator("content")
     @classmethod
@@ -24,6 +23,14 @@ class NoteCreate(BaseModel):
         if not cleaned:
             raise ValueError("Note content cannot be blank")
         return cleaned
+
+    @field_validator("author_name")
+    @classmethod
+    def _clean_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
 
 
 class NoteUpdate(BaseModel):
@@ -55,6 +62,20 @@ class NotePublic(BaseModel):
     y: int
     tile_id: int
     created_at: datetime
+
+
+class NoteCreated(NotePublic):
+    """Returned once to the creator. Carries the secret delete token so the
+    posting browser can later remove this note without an account. The token is
+    never included in any public read."""
+
+    delete_token: str
+
+
+class NoteDelete(BaseModel):
+    """Token proving the caller created this note (device-remembered)."""
+
+    token: str = Field(min_length=1)
 
 
 class NoteOwned(NotePublic):

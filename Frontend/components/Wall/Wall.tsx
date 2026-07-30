@@ -9,10 +9,10 @@ import {
   type CSSProperties,
 } from "react";
 import { useWall } from "@/lib/store";
-import { numericId } from "@/lib/mapping";
 import type { NoteData } from "@/lib/notes";
 import { useLikes } from "@/lib/useLikes";
 import { useWallActions } from "@/lib/useWallActions";
+import { deviceNoteIds } from "@/lib/deviceNotes";
 import StickyNote from "../StickyNote/StickyNote";
 import NoteViewer from "../StickyNote/NoteViewer";
 import EmptyState from "../EmptyState/EmptyState";
@@ -53,7 +53,6 @@ interface Camera {
 export default function Wall({ onShare }: { onShare: () => void }) {
   const notes = useWall((s) => s.notes);
   const notesLoaded = useWall((s) => s.notesLoaded);
-  const myNote = useWall((s) => s.myNote);
   const justPostedId = useWall((s) => s.justPostedId);
   const { isLiked, count, toggle } = useLikes();
   const { remove } = useWallActions();
@@ -74,10 +73,9 @@ export default function Wall({ onShare }: { onShare: () => void }) {
     return () => ro.disconnect();
   }, []);
 
-  const myNumericId = useMemo(
-    () => (myNote ? numericId(myNote.id) : null),
-    [myNote]
-  );
+  // Notes this browser posted (so it can offer a Delete on them). Recomputes
+  // whenever the note set changes — which covers posting and removing.
+  const mineIds = useMemo(() => deviceNoteIds(), [notes]);
 
   // — the virtual wall: sized from the note count, always bigger than the
   //   viewport so it reads as a real wall you look INTO, not a screen. —
@@ -277,7 +275,7 @@ export default function Wall({ onShare }: { onShare: () => void }) {
               <StickyNote
                 key={note.id}
                 note={note}
-                isMine={note.id === myNumericId}
+                isMine={mineIds.has(note.id)}
                 fresh={note.id === justPostedId}
                 layout={layouts.get(note.id)}
                 scale={cam.s}
@@ -314,12 +312,12 @@ export default function Wall({ onShare }: { onShare: () => void }) {
       {openNote && (
         <NoteViewer
           note={openNote as NoteData}
-          isMine={openNote.id === myNumericId}
+          isMine={mineIds.has(openNote.id)}
           liked={isLiked(openNote.id)}
           likeCount={count(openNote.id)}
           onLike={() => toggle(openNote.id)}
           onRemove={async () => {
-            if (myNote) await remove(myNote.id);
+            await remove(openNote.id);
             setOpenId(null);
           }}
           onClose={() => setOpenId(null)}

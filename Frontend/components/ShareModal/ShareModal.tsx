@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useWall } from "@/lib/store";
 import { NOTE_MAX_LENGTH } from "@/lib/config";
-import { NOTE_CATEGORIES, COLOR_CLASS } from "@/lib/mapping";
+import { NOTE_CATEGORIES } from "@/lib/mapping";
 import { useWallActions } from "@/lib/useWallActions";
-import GoogleSignIn from "../Auth/GoogleSignIn";
 
+const NAME_MAX = 80;
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
 
-/** Keep Tab focus inside the modal (Google's iframe button is exempt by design). */
+/** Keep Tab focus inside the modal. */
 function trapFocus(e: KeyboardEvent, container: HTMLElement | null) {
   if (!container) return;
   const nodes = Array.from(
@@ -35,25 +34,21 @@ export default function ShareModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const user = useWall((s) => s.user);
-  const myNote = useWall((s) => s.myNote);
-  const { post, remove } = useWallActions();
+  const { post } = useWallActions();
 
   const [text, setText] = useState("");
   const [categoryKey, setCategoryKey] = useState(NOTE_CATEGORIES[0].key);
-  const [reveal, setReveal] = useState(false);
+  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // On open: reset, lock background scroll, focus in, trap Tab, and restore
-  // focus to the trigger on close.
   useEffect(() => {
     if (!open) return;
     setText("");
     setCategoryKey(NOTE_CATEGORIES[0].key);
-    setReveal(false);
+    setName("");
     setError(null);
 
     const restoreTo = document.activeElement as HTMLElement | null;
@@ -90,18 +85,10 @@ export default function ShareModal({
   const submit = async () => {
     setBusy(true);
     setError(null);
-    const res = await post(text, category.value, reveal);
+    const res = await post(text, category.value, name);
     setBusy(false);
     if (res.ok) onClose();
     else setError(res.error ?? "Something went wrong.");
-  };
-
-  const removeMine = async () => {
-    if (!myNote) return;
-    setBusy(true);
-    const res = await remove(myNote.id);
-    setBusy(false);
-    if (!res.ok) setError(res.error ?? "Could not remove your note.");
   };
 
   return (
@@ -114,126 +101,75 @@ export default function ShareModal({
         className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Share your note"
+        aria-label="Pin a note"
       >
         <button className="modal-close" onClick={onClose} aria-label="Close">
           ✕
         </button>
 
-        {/* — Signed out: gate behind Google sign-in — */}
-        {!user ? (
-          <div className="modal-signin">
-            <h2>Sign in to pin your note</h2>
-            <p className="hint">
-              Founder&apos;s Wall uses Google to keep the wall real. Sign in, then
-              share what you&apos;re wrestling with.
-            </p>
-            <GoogleSignIn />
+        <div className="modal-compose">
+          <h2>Pin your note</h2>
+          <p className="hint">
+            Share what you&apos;re wrestling with, advice you&apos;d give, or
+            something you&apos;ve lived through. No account needed.
+          </p>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            maxLength={NOTE_MAX_LENGTH}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="How do I…?"
+            aria-label="Your note"
+          />
+          <div className="char-count">
+            {text.length}/{NOTE_MAX_LENGTH}
           </div>
-        ) : myNote ? (
-          /* — Already has a note (one per founder) — */
-          <div className="modal-existing">
-            <h2>You&apos;ve pinned your note</h2>
-            <p className="hint">
-              Each founder keeps one note on the wall. Remove yours to pin a new
-              one.
-            </p>
-            <div
-              className={`note ${COLOR_CLASS[myNote.color] ?? "yellow"} modal-existing__preview`}
-            >
-              <span className="note__text">{myNote.content}</span>
-              {myNote.author_name && (
-                <span className="note__author">— {myNote.author_name}</span>
-              )}
-            </div>
-            {error && <p className="modal-error" role="alert">{error}</p>}
-            <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={onClose}>
-                Close
-              </button>
+
+          <p className="field-label">What kind of note is this?</p>
+          <div className="categories" role="radiogroup" aria-label="Note category">
+            {NOTE_CATEGORIES.map((c) => (
               <button
-                className="btn btn-primary"
-                onClick={removeMine}
-                disabled={busy}
+                key={c.key}
+                type="button"
+                className={`category ${c.name}${categoryKey === c.key ? " selected" : ""}`}
+                role="radio"
+                aria-checked={categoryKey === c.key}
+                onClick={() => setCategoryKey(c.key)}
               >
-                {busy ? "Removing…" : "Remove my note"}
+                <span className="category__dot" style={{ background: c.hex }} />
+                <span className="category__label">{c.label}</span>
+                <span className="category__hint">{c.hint}</span>
               </button>
-            </div>
+            ))}
           </div>
-        ) : (
-          /* — Compose — */
-          <div className="modal-compose">
-            <h2>Pin your question</h2>
-            <p className="hint">
-              What&apos;s the thing you&apos;re quietly wrestling with? Others are
-              probably wondering it too.
-            </p>
-            <textarea
-              ref={textareaRef}
-              value={text}
-              maxLength={NOTE_MAX_LENGTH}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="How do I…?"
-              aria-label="Your note"
+
+          <label className="name-field">
+            <span className="field-label">Your name (optional)</span>
+            <input
+              type="text"
+              value={name}
+              maxLength={NAME_MAX}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Leave blank to stay anonymous"
+              aria-label="Your name (optional)"
             />
-            <div className="char-count">
-              {text.length}/{NOTE_MAX_LENGTH}
-            </div>
+          </label>
 
-            <p className="field-label">What kind of note is this?</p>
-            <div
-              className="categories"
-              role="radiogroup"
-              aria-label="Note category"
+          {error && <p className="modal-error" role="alert">{error}</p>}
+
+          <div className="modal-actions">
+            <button className="btn btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={submit}
+              disabled={busy || text.trim().length === 0}
             >
-              {NOTE_CATEGORIES.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  className={`category ${c.name}${categoryKey === c.key ? " selected" : ""}`}
-                  role="radio"
-                  aria-checked={categoryKey === c.key}
-                  onClick={() => setCategoryKey(c.key)}
-                >
-                  <span className="category__dot" style={{ background: c.hex }} />
-                  <span className="category__label">{c.label}</span>
-                  <span className="category__hint">{c.hint}</span>
-                </button>
-              ))}
-            </div>
-
-            <label className="reveal-toggle">
-              <input
-                type="checkbox"
-                checked={reveal}
-                onChange={(e) => setReveal(e.target.checked)}
-              />
-              <span className="reveal-toggle__text">
-                Show my name on this note
-                <span className="reveal-toggle__sub">
-                  {reveal
-                    ? `Posting as ${user.displayName || user.email}`
-                    : "Off — your note stays anonymous"}
-                </span>
-              </span>
-            </label>
-
-            {error && <p className="modal-error" role="alert">{error}</p>}
-
-            <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={onClose}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={submit}
-                disabled={busy || text.trim().length === 0}
-              >
-                {busy ? "Pinning…" : "Pin it to the wall"}
-              </button>
-            </div>
+              {busy ? "Pinning…" : "Pin it to the wall"}
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

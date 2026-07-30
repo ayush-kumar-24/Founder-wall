@@ -13,7 +13,6 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     Uuid,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,29 +46,22 @@ class Note(Base, TimestampMixin):
         UniqueConstraint("x", "y", name="uq_notes_cell"),
         CheckConstraint("x IS NULL OR x >= 0", name="x_non_negative"),
         CheckConstraint("y IS NULL OR y >= 0", name="y_non_negative"),
-        # Enforce "one active note per founder" at the database level so two
-        # concurrent creates can never both succeed. Partial index → only rows
-        # with status='active' participate; removed notes are unconstrained.
-        Index(
-            "uq_notes_active_per_user",
-            "user_id",
-            unique=True,
-            postgresql_where=text("status = 'active'"),
-            sqlite_where=text("status = 'active'"),
-        ),
         # Hot read path: notes within a tile filtered by status.
         Index("ix_notes_tile_status", "tile_id", "status"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    # Optional: posting requires no account. Legacy notes keep their author;
+    # new open-wall notes are user-less (NULL).
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=True
     )
     content: Mapped[str] = mapped_column(String(512), nullable=False)
-    # Set at post time only when the founder chooses to reveal their identity;
-    # NULL means the note stays anonymous (the default). Snapshotting the name
-    # here keeps the public read path a plain column read — no user join.
+    # Optional name the poster typed. NULL = anonymous.
     author_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Secret returned once to the creator; lets that browser delete its own note
+    # without an account. NULL notes can only be removed by a moderator.
+    delete_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
     color: Mapped[NoteColor] = mapped_column(
         value_enum(NoteColor),
         default=NoteColor.AMBER,

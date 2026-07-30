@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 import uuid
 
 from sqlalchemy.exc import IntegrityError
@@ -18,6 +19,7 @@ from app.wall.placement import WallGeometry
 from app.wall.repository import NoteRepository
 from app.wall.schemas import (
     NoteCreate,
+    NoteCreated,
     NoteOwned,
     NotePublic,
     NoteUpdate,
@@ -52,30 +54,29 @@ class WallService:
         self._stats = stats
 
     # --- Commands --------------------------------------------------------
-    async def create_note(
-        self,
-        user_id: uuid.UUID,
-        data: NoteCreate,
-        *,
-        author_display_name: str | None = None,
-    ) -> NotePublic:
+    async def create_note(self, data: NoteCreate) -> NoteCreated:
+        """Post a note. Open to everyone — no account, no per-person limit.
+        Returns a one-time delete token so the posting browser can remove it."""
         result = self._screener.screen(data.content)
         if not result.allowed:
             raise ValidationError("Note rejected by content policy", code="content_rejected")
 
-        if await self._repo.get_active_for_user(user_id) is not None:
-            raise ConflictError(
-                "You already have an active note; edit or remove it first",
-                code="note_exists",
-            )
-
-        # Snapshot the name only if the founder chose to reveal it.
-        author_name = author_display_name if data.reveal_identity else None
-        note = await self._place_note(user_id, data, author_name=author_name)
+        token = secrets.token_urlsafe(24)
+        note = await self._place_note(data, delete_token=token)
         await self._counters.increment_thoughts()
         await self._broadcast_note(EventType.NOTE_CREATED, note)
         await self._broadcast_counters()
-        return NotePublic.model_validate(note)
+        return NoteCreated.model_validate(note)
+
+    async def delete_note_by_token(self, note_id: uuid.UUID, token: str) -> None:
+        """Remove a note using the creator's device-held delete token."""
+        note = await self._repo.get(note_id)
+        if note is None or note.status != NoteStatus.ACTIVE:
+            raise NotFoundError("Active note not found")
+        # Constant-time compare; a missing/blank stored token can never match.
+        if not note.delete_token or not secrets.compare_digest(note.delete_token, token):
+            raise NotFoundError("Active note not found")
+        await self._retire(note)
 
     async def update_note(
         self, user_id: uuid.UUID, note_id: uuid.UUID, data: NoteUpdate
@@ -148,17 +149,16 @@ class WallService:
         )
 
     # --- Internals -------------------------------------------------------
-    async def _place_note(
-        self, user_id: uuid.UUID, data: NoteCreate, *, author_name: str | None = None
-    ) -> Note:
+    async def _place_note(self, data: NoteCreate, *, delete_token: str) -> Note:
         last_error: IntegrityError | None = None
         for _ in range(_MAX_PLACEMENT_ATTEMPTS):
             occupied = await self._repo.occupied_cells()
             cell = self._geometry.first_free_cell(occupied)
             note = Note(
-                user_id=user_id,
+                user_id=None,
                 content=data.content,
-                author_name=author_name,
+                author_name=data.author_name,
+                delete_token=delete_token,
                 color=data.color or NoteColor.AMBER,
                 status=NoteStatus.ACTIVE,
                 x=cell.x,
@@ -173,17 +173,9 @@ class WallService:
                 await self._session.refresh(note)
                 return note
             except IntegrityError as exc:
-                # Two integrity failures are possible under concurrency:
-                #  1. the per-user active-note unique index — the founder raced
-                #     themselves; surface a clean 409 rather than retrying.
-                #  2. the cell unique constraint — another founder took the
-                #     cell; pick a new free cell and retry.
+                # The only integrity failure now is the cell unique constraint —
+                # another note took the cell; pick a new free cell and retry.
                 last_error = exc
-                if await self._repo.get_active_for_user(user_id) is not None:
-                    raise ConflictError(
-                        "You already have an active note; edit or remove it first",
-                        code="note_exists",
-                    ) from exc
         raise ConflictError("Could not place note; please retry") from last_error
 
     async def _retire(self, note: Note) -> None:

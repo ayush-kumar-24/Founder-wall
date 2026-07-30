@@ -3,15 +3,11 @@
 import { useState } from "react";
 import { useWall } from "@/lib/store";
 import { useWallStats } from "@/lib/useWallStats";
-import { signOut } from "@/lib/auth";
 import { GOXL_URL, GOXL_WHATSAPP_URL } from "@/lib/config";
 import Logo from "../Logo/Logo";
 
 export default function Header({ onAbout }: { onAbout: () => void }) {
-  const user = useWall((s) => s.user);
   const notes = useWall((s) => s.notes);
-  const setUser = useWall((s) => s.setUser);
-  const setMyNote = useWall((s) => s.setMyNote);
   const { stats, status } = useWallStats();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,14 +16,6 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
   // Notes on the wall now (falls back to the live count while it loads).
   const noteCount = notes.length || (ready ? stats.activeNotes : 0);
   const whatsapp = GOXL_WHATSAPP_URL;
-
-  const handleSignOut = async () => {
-    await signOut();
-    setUser(null);
-    setMyNote(null);
-  };
-
-  const identityLabel = user?.displayName || user?.email;
 
   return (
     <header className="site-header">
@@ -61,14 +49,6 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
         <button className="btn btn-ghost header-corner__action" onClick={onAbout}>
           about
         </button>
-        {user && (
-          <span className="identity header-corner__action">
-            <span className="identity__name">{identityLabel}</span>
-            <button className="btn btn-ghost" onClick={handleSignOut}>
-              sign out
-            </button>
-          </span>
-        )}
 
         {/* Mobile — collapse the same actions into a hamburger menu. */}
         <button
@@ -90,7 +70,6 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
         <>
           <div className="nav-scrim" onClick={() => setMenuOpen(false)} />
           <div className="nav-menu" role="menu">
-            {user && <span className="nav-menu__name">{identityLabel}</span>}
             {whatsapp && (
               <a
                 className="nav-menu__item wa-link"
@@ -114,18 +93,6 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
             >
               About
             </button>
-            {user && (
-              <button
-                className="nav-menu__item"
-                role="menuitem"
-                onClick={() => {
-                  handleSignOut();
-                  setMenuOpen(false);
-                }}
-              >
-                Sign out
-              </button>
-            )}
           </div>
         </>
       )}

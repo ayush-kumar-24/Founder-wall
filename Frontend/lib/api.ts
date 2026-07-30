@@ -3,7 +3,6 @@
 // or HTTP status codes.
 
 import { API_BASE_URL, REQUEST_TIMEOUT_MS } from "./config";
-import { authFetch } from "./auth";
 import type { ApiNote, NoteColor } from "./mapping";
 
 export class ApiError extends Error {
@@ -107,11 +106,23 @@ export async function fetchAllNotes(signal?: AbortSignal): Promise<ApiNote[]> {
   return tiles.flatMap((t) => t.notes);
 }
 
-/** Raised when the founder already has a note on the wall (HTTP 409). */
-export class NoteExistsError extends ApiError {
-  constructor() {
-    super("You have already left a note on the wall.", 409);
-    this.name = "NoteExistsError";
+/** A public (unauthenticated) mutation — posting and deleting are open. */
+async function mutate(
+  path: string,
+  method: "POST" | "DELETE",
+  body?: unknown
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -133,39 +144,35 @@ async function readError(res: Response, fallback: string): Promise<string> {
   }
 }
 
-/** Post the signed-in founder's note. The server assigns its place on the wall. */
+/** A freshly-created note. Carries the one-time delete token (this browser
+ *  only) so the poster can remove it later without an account. */
+export interface CreatedNote extends ApiNote {
+  delete_token: string;
+}
+
+/** Post a note. Open to everyone — no account. The server assigns its place. */
 export async function createNote(
   content: string,
   color: NoteColor,
-  revealIdentity = false
-): Promise<ApiNote> {
-  const res = await authFetch("/wall/notes", {
-    method: "POST",
-    body: JSON.stringify({ content, color, reveal_identity: revealIdentity }),
+  authorName?: string | null
+): Promise<CreatedNote> {
+  const res = await mutate("/wall/notes", "POST", {
+    content,
+    color,
+    author_name: authorName || null,
   });
-  if (res.status === 409) throw new NoteExistsError();
   if (res.status === 422) {
     throw new ContentRejectedError(
       await readError(res, "That note could not be accepted.")
     );
   }
-  if (res.status === 401) throw new ApiError("Please sign in first.", 401);
   if (!res.ok) throw new ApiError(await readError(res, "Could not post note."), res.status);
-  return (await res.json()) as ApiNote;
+  return (await res.json()) as CreatedNote;
 }
 
-/** The signed-in founder's own note, or null if they have not posted one. */
-export async function fetchMyNote(signal?: AbortSignal): Promise<ApiNote | null> {
-  const res = await authFetch("/wall/notes/me", { signal });
-  if (res.status === 401) return null;
-  if (!res.ok) throw new ApiError("Could not load your note.", res.status);
-  const data = await res.json();
-  return data as ApiNote | null;
-}
-
-/** Retire the founder's note, freeing its cell so they may write again. */
-export async function deleteNote(noteId: string): Promise<void> {
-  const res = await authFetch(`/wall/notes/${noteId}`, { method: "DELETE" });
-  if (res.status === 404) return; // already gone — treat as success
-  if (!res.ok) throw new ApiError("Could not remove your note.", res.status);
+/** Remove a note using the delete token this browser saved when it posted. */
+export async function deleteNote(noteId: string, token: string): Promise<void> {
+  const res = await mutate(`/wall/notes/${noteId}`, "DELETE", { token });
+  if (res.status === 404) return; // already gone / not ours — treat as removed
+  if (!res.ok) throw new ApiError("Could not remove the note.", res.status);
 }

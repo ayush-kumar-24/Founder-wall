@@ -1,14 +1,13 @@
 "use client";
 
-// One effect that brings the wall to life on load: restore any existing
-// session, fetch the notes already on the wall, and open the live feed so new
-// notes from other founders appear in real time. Runs once, cleans up its
-// socket on unmount.
+// One effect that brings the wall to life on load: fetch the notes already on
+// the wall and open the live feed so new notes appear in real time. Posting is
+// open — there's no session to restore. Runs once, cleans up its socket on
+// unmount.
 
 import { useEffect } from "react";
 import { useWall } from "./store";
-import { fetchAllNotes, fetchMyNote } from "./api";
-import { fetchMe } from "./auth";
+import { fetchAllNotes } from "./api";
 import { apiNoteToNoteData, numericId } from "./mapping";
 import { connectWall } from "./ws";
 
@@ -17,30 +16,10 @@ export function useBootstrap(): void {
   const setNotesLoaded = useWall((s) => s.setNotesLoaded);
   const upsertNote = useWall((s) => s.upsertNote);
   const removeNoteById = useWall((s) => s.removeNoteById);
-  const setUser = useWall((s) => s.setUser);
-  const setAuthReady = useWall((s) => s.setAuthReady);
-  const setMyNote = useWall((s) => s.setMyNote);
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-
-    // — restore session —
-    (async () => {
-      try {
-        const user = await fetchMe();
-        if (cancelled) return;
-        setUser(user);
-        if (user) {
-          const mine = await fetchMyNote(controller.signal);
-          if (!cancelled) setMyNote(mine);
-        }
-      } catch {
-        /* offline or no session — the wall is still viewable */
-      } finally {
-        if (!cancelled) setAuthReady(true);
-      }
-    })();
 
     // — the notes already on the wall —
     (async () => {

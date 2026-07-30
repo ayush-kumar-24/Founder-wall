@@ -1,4 +1,4 @@
-"""Wall HTTP routes."""
+"""Wall HTTP routes. Posting is open — no account required."""
 
 from __future__ import annotations
 
@@ -6,14 +6,11 @@ import uuid
 
 from fastapi import APIRouter, status
 
-from app.auth.dependencies import CurrentUser
-from app.shared.dependencies import rate_limit
 from app.wall.dependencies import WallServiceDep
 from app.wall.schemas import (
     NoteCreate,
-    NoteOwned,
-    NotePublic,
-    NoteUpdate,
+    NoteCreated,
+    NoteDelete,
     TileDetail,
     WallManifest,
 )
@@ -31,48 +28,25 @@ async def tile(tile_id: int, service: WallServiceDep) -> TileDetail:
     return await service.get_tile(tile_id)
 
 
-@router.get("/notes/me", response_model=NoteOwned | None, summary="Your active note")
-async def my_note(user: CurrentUser, service: WallServiceDep) -> NoteOwned | None:
-    return await service.get_my_note(user.id)
-
-
 @router.post(
     "/notes",
-    response_model=NotePublic,
+    response_model=NoteCreated,
     status_code=status.HTTP_201_CREATED,
-    summary="Place your sticky note on the wall",
-    dependencies=[rate_limit(per_minute=20)],
+    summary="Pin a sticky note on the wall",
 )
-async def create_note(body: NoteCreate, user: CurrentUser, service: WallServiceDep) -> NotePublic:
-    return await service.create_note(
-        user.id, body, author_display_name=user.display_name
-    )
-
-
-@router.patch(
-    "/notes/{note_id}",
-    response_model=NoteOwned,
-    summary="Edit your active note",
-    dependencies=[rate_limit(per_minute=30)],
-)
-async def update_note(
-    note_id: uuid.UUID,
-    body: NoteUpdate,
-    user: CurrentUser,
-    service: WallServiceDep,
-) -> NoteOwned:
-    return await service.update_note(user.id, note_id, body)
+async def create_note(body: NoteCreate, service: WallServiceDep) -> NoteCreated:
+    return await service.create_note(body)
 
 
 @router.delete(
     "/notes/{note_id}",
     status_code=status.HTTP_200_OK,
-    summary="Remove your active note",
+    summary="Remove a note you posted (using its delete token)",
 )
 async def delete_note(
     note_id: uuid.UUID,
-    user: CurrentUser,
+    body: NoteDelete,
     service: WallServiceDep,
 ) -> dict[str, bool]:
-    await service.delete_note(user.id, note_id)
+    await service.delete_note_by_token(note_id, body.token)
     return {"success": True}
