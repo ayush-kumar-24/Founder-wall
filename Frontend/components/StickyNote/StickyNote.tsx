@@ -87,6 +87,9 @@ function StickyNote({ note, isMine, fresh, layout, scale = 1, onOpen }: StickyNo
     >
       <span className="note__tape" aria-hidden="true" />
       <span className="note__text">{note.text}</span>
+      {note.authorName && (
+        <span className="note__author">— {note.authorName}</span>
+      )}
       {hasUnderline(note.id) && (
         <span className="note__underline" aria-hidden="true" />
       )}

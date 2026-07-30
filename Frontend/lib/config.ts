@@ -76,6 +76,15 @@ export const WS_URL = (() => {
  */
 export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
+/** GoXL parent-brand website — the header logo links here. */
+export const GOXL_URL =
+  process.env.NEXT_PUBLIC_GOXL_URL?.trim() || "https://goxl.in";
+
+/** GoXL WhatsApp community invite link. When set, the "WhatsApp community"
+ *  action appears in the header/menu; empty hides it. */
+export const GOXL_WHATSAPP_URL =
+  process.env.NEXT_PUBLIC_GOXL_WHATSAPP_URL?.trim() || "";
+
 /** How often the live figures are refreshed while the tab is visible. */
 export const STATS_POLL_INTERVAL_MS = 45_000;
 

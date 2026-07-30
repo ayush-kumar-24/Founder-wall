@@ -178,6 +178,18 @@ body::after {
 }
 .nav-menu__item:hover { background: rgba(43, 36, 26, 0.06); }
 
+/* WhatsApp community link (header + menu) — carries the WhatsApp green. */
+.wa-link { display: inline-flex; align-items: center; gap: 6px; color: #1f8a4c; }
+.wa-link:hover { color: #146b3a; }
+.wa-icon { flex: none; }
+.nav-menu__item.wa-link {
+  display: flex;
+  text-decoration: none;
+  gap: 8px;
+  color: #1f8a4c;
+}
+.nav-menu__item.wa-link:hover { background: rgba(31, 138, 76, 0.08); }
+
 /* GoXL parent brand, pinned to the top-left corner on every device. */
 .brand-corner {
   position: absolute;
@@ -189,6 +201,17 @@ body::after {
   align-items: flex-start;
   gap: 3px;
   pointer-events: none; /* display-only; the wall pans underneath it */
+}
+.brand-link {
+  display: inline-flex;
+  pointer-events: auto; /* clickable even though the header is pass-through */
+  cursor: pointer;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+.brand-link:focus-visible {
+  outline: 3px solid #8a7c52;
+  outline-offset: 3px;
 }
 .brand-logo {
   height: clamp(30px, 4.2vw, 44px);
@@ -382,6 +405,7 @@ body::after {
   width: var(--note-size);
   min-height: calc(var(--note-size) * 0.84);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -760,6 +784,75 @@ body::after {
   font-size: 1rem; font-weight: 700; color: rgba(43, 36, 26, 0.75);
 }
 .swatch:focus-visible { outline: 3px solid #8a7c52; outline-offset: 2px; }
+/* Note category picker (advice / problem / experience → green / red / blue). */
+.field-label { margin: 4px 0 8px; font-size: 0.9rem; font-weight: 600; color: #5a5138; }
+.categories { display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px; }
+.category {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 11px;
+  align-items: center;
+  text-align: left;
+  padding: 10px 13px;
+  border-radius: 10px;
+  border: 1.5px solid #d7cbaa;
+  background: #fdf9ec;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.category:hover { background: #fbf5e4; }
+.category.selected {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(43, 36, 26, 0.08);
+}
+.category:focus-visible { outline: 3px solid #8a7c52; outline-offset: 2px; }
+.category__dot {
+  grid-row: 1 / span 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.category__label { font-weight: 700; font-size: 0.98rem; }
+.category__hint { grid-column: 2; font-size: 0.8rem; color: var(--ink-faint); }
+
+/* Reveal-identity toggle. */
+.reveal-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 0 0 16px;
+  cursor: pointer;
+}
+.reveal-toggle input {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ink);
+  cursor: pointer;
+  flex: none;
+}
+.reveal-toggle__text { display: flex; flex-direction: column; font-size: 0.95rem; }
+.reveal-toggle__sub { margin-top: 2px; font-size: 0.8rem; color: var(--ink-faint); }
+
+/* Author byline shown only on revealed notes. */
+.note__author {
+  position: relative;
+  z-index: 1;
+  margin-top: 5px;
+  max-width: 92%;
+  font-size: clamp(3px, calc(var(--note-size) * 0.058), 12px);
+  font-style: italic;
+  color: #4a4030;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-viewer__author { font-size: 1rem; margin-top: 14px; opacity: 0.9; }
+
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
 .modal-close {
   position: absolute; top: 14px; right: 16px;

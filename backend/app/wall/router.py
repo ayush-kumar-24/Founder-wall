@@ -44,7 +44,9 @@ async def my_note(user: CurrentUser, service: WallServiceDep) -> NoteOwned | Non
     dependencies=[rate_limit(per_minute=20)],
 )
 async def create_note(body: NoteCreate, user: CurrentUser, service: WallServiceDep) -> NotePublic:
-    return await service.create_note(user.id, body)
+    return await service.create_note(
+        user.id, body, author_display_name=user.display_name
+    )
 
 
 @router.patch(

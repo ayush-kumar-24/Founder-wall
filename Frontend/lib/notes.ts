@@ -6,4 +6,5 @@ export interface NoteData {
   id: number;
   text: string;
   color: string; // yellow | pink | purple | blue | green | slate
+  authorName?: string | null; // shown on the note only if the founder revealed it
 }

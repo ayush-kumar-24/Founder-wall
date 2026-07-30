@@ -29,11 +29,15 @@ export function useWallActions() {
   const setJustPostedId = useWall((s) => s.setJustPostedId);
 
   const post = useCallback(
-    async (content: string, color: NoteColor): Promise<PostResult> => {
+    async (
+      content: string,
+      color: NoteColor,
+      revealIdentity = false
+    ): Promise<PostResult> => {
       const text = content.trim();
       if (!text) return { ok: false, error: "Write something first." };
       try {
-        const api = await createNote(text, color);
+        const api = await createNote(text, color, revealIdentity);
         setMyNote(api);
         const nd = apiNoteToNoteData(api);
         // Mark it as just-posted so the wall plays the fly-in for it.

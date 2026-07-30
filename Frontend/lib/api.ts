@@ -136,11 +136,12 @@ async function readError(res: Response, fallback: string): Promise<string> {
 /** Post the signed-in founder's note. The server assigns its place on the wall. */
 export async function createNote(
   content: string,
-  color: NoteColor
+  color: NoteColor,
+  revealIdentity = false
 ): Promise<ApiNote> {
   const res = await authFetch("/wall/notes", {
     method: "POST",
-    body: JSON.stringify({ content, color }),
+    body: JSON.stringify({ content, color, reveal_identity: revealIdentity }),
   });
   if (res.status === 409) throw new NoteExistsError();
   if (res.status === 422) {

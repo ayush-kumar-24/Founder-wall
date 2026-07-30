@@ -52,7 +52,13 @@ class WallService:
         self._stats = stats
 
     # --- Commands --------------------------------------------------------
-    async def create_note(self, user_id: uuid.UUID, data: NoteCreate) -> NotePublic:
+    async def create_note(
+        self,
+        user_id: uuid.UUID,
+        data: NoteCreate,
+        *,
+        author_display_name: str | None = None,
+    ) -> NotePublic:
         result = self._screener.screen(data.content)
         if not result.allowed:
             raise ValidationError("Note rejected by content policy", code="content_rejected")
@@ -63,7 +69,9 @@ class WallService:
                 code="note_exists",
             )
 
-        note = await self._place_note(user_id, data)
+        # Snapshot the name only if the founder chose to reveal it.
+        author_name = author_display_name if data.reveal_identity else None
+        note = await self._place_note(user_id, data, author_name=author_name)
         await self._counters.increment_thoughts()
         await self._broadcast_note(EventType.NOTE_CREATED, note)
         await self._broadcast_counters()
@@ -140,7 +148,9 @@ class WallService:
         )
 
     # --- Internals -------------------------------------------------------
-    async def _place_note(self, user_id: uuid.UUID, data: NoteCreate) -> Note:
+    async def _place_note(
+        self, user_id: uuid.UUID, data: NoteCreate, *, author_name: str | None = None
+    ) -> Note:
         last_error: IntegrityError | None = None
         for _ in range(_MAX_PLACEMENT_ATTEMPTS):
             occupied = await self._repo.occupied_cells()
@@ -148,6 +158,7 @@ class WallService:
             note = Note(
                 user_id=user_id,
                 content=data.content,
+                author_name=author_name,
                 color=data.color or NoteColor.AMBER,
                 status=NoteStatus.ACTIVE,
                 x=cell.x,

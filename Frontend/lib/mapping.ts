@@ -10,6 +10,7 @@ export interface ApiNote {
   id: string; // uuid
   content: string;
   color: NoteColor;
+  author_name: string | null; // present only when the founder revealed their identity
   x: number; // grid column (server-assigned; unused by the 2D wall)
   y: number; // grid row
   tile_id: number;
@@ -44,15 +45,46 @@ export const COLOR_CLASS: Record<NoteColor, WallColor> = {
   slate: "slate",
 };
 
-/** The five swatches in the share modal: class name, backend enum, swatch hex. */
-export const WALL_COLORS: { name: WallColor; value: NoteColor; hex: string }[] =
-  [
-    { name: "yellow", value: "amber", hex: "#f3d15e" },
-    { name: "pink", value: "rose", hex: "#f0a49d" },
-    { name: "purple", value: "violet", hex: "#c8b4e3" },
-    { name: "blue", value: "sky", hex: "#a9cbe0" },
-    { name: "green", value: "emerald", hex: "#b6ce9c" },
-  ];
+/** The three note categories a founder chooses from — each maps to a fixed
+ *  colour so the wall reads at a glance: green = advice, red = problem,
+ *  blue = experience. */
+export type NoteCategoryKey = "advice" | "problem" | "experience";
+
+export interface NoteCategory {
+  key: NoteCategoryKey;
+  label: string;
+  hint: string;
+  value: NoteColor; // backend enum sent to the API
+  name: WallColor; // CSS class on the sticky note
+  hex: string; // swatch preview colour
+}
+
+export const NOTE_CATEGORIES: NoteCategory[] = [
+  {
+    key: "advice",
+    label: "Advice",
+    hint: "Something you'd tell a fellow founder",
+    value: "emerald",
+    name: "green",
+    hex: "#9cc77e",
+  },
+  {
+    key: "problem",
+    label: "Problem",
+    hint: "Something you're stuck on",
+    value: "rose",
+    name: "pink",
+    hex: "#e8817a",
+  },
+  {
+    key: "experience",
+    label: "Experience",
+    hint: "Something you've lived through",
+    value: "sky",
+    name: "blue",
+    hex: "#8fbad6",
+  },
+];
 
 /** A stable FNV-1a hash of a string → uint32. */
 function hashId(id: string): number {
@@ -78,5 +110,6 @@ export function apiNoteToNoteData(api: ApiNote): NoteData {
     id: numericId(api.id),
     text: api.content,
     color: COLOR_CLASS[api.color] ?? "yellow",
+    authorName: api.author_name ?? null,
   };
 }

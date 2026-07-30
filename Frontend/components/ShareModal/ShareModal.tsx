@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useWall } from "@/lib/store";
 import { NOTE_MAX_LENGTH } from "@/lib/config";
-import { WALL_COLORS } from "@/lib/mapping";
+import { NOTE_CATEGORIES, COLOR_CLASS } from "@/lib/mapping";
 import { useWallActions } from "@/lib/useWallActions";
 import GoogleSignIn from "../Auth/GoogleSignIn";
 
@@ -40,7 +40,8 @@ export default function ShareModal({
   const { post, remove } = useWallActions();
 
   const [text, setText] = useState("");
-  const [color, setColor] = useState(WALL_COLORS[0].value);
+  const [categoryKey, setCategoryKey] = useState(NOTE_CATEGORIES[0].key);
+  const [reveal, setReveal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,7 +52,8 @@ export default function ShareModal({
   useEffect(() => {
     if (!open) return;
     setText("");
-    setColor(WALL_COLORS[0].value);
+    setCategoryKey(NOTE_CATEGORIES[0].key);
+    setReveal(false);
     setError(null);
 
     const restoreTo = document.activeElement as HTMLElement | null;
@@ -82,10 +84,13 @@ export default function ShareModal({
 
   if (!open) return null;
 
+  const category =
+    NOTE_CATEGORIES.find((c) => c.key === categoryKey) ?? NOTE_CATEGORIES[0];
+
   const submit = async () => {
     setBusy(true);
     setError(null);
-    const res = await post(text, color);
+    const res = await post(text, category.value, reveal);
     setBusy(false);
     if (res.ok) onClose();
     else setError(res.error ?? "Something went wrong.");
@@ -133,8 +138,13 @@ export default function ShareModal({
               Each founder keeps one note on the wall. Remove yours to pin a new
               one.
             </p>
-            <div className={`note ${WALL_COLORS[0].name} modal-existing__preview`}>
+            <div
+              className={`note ${COLOR_CLASS[myNote.color] ?? "yellow"} modal-existing__preview`}
+            >
               <span className="note__text">{myNote.content}</span>
+              {myNote.author_name && (
+                <span className="note__author">— {myNote.author_name}</span>
+              )}
             </div>
             {error && <p className="modal-error" role="alert">{error}</p>}
             <div className="modal-actions">
@@ -170,20 +180,43 @@ export default function ShareModal({
               {text.length}/{NOTE_MAX_LENGTH}
             </div>
 
-            <div className="swatches" role="radiogroup" aria-label="Note colour">
-              {WALL_COLORS.map((c) => (
+            <p className="field-label">What kind of note is this?</p>
+            <div
+              className="categories"
+              role="radiogroup"
+              aria-label="Note category"
+            >
+              {NOTE_CATEGORIES.map((c) => (
                 <button
-                  key={c.value}
+                  key={c.key}
                   type="button"
-                  className={`swatch ${c.name}${color === c.value ? " selected" : ""}`}
-                  style={{ background: c.hex }}
+                  className={`category ${c.name}${categoryKey === c.key ? " selected" : ""}`}
                   role="radio"
-                  aria-checked={color === c.value}
-                  aria-label={c.name}
-                  onClick={() => setColor(c.value)}
-                />
+                  aria-checked={categoryKey === c.key}
+                  onClick={() => setCategoryKey(c.key)}
+                >
+                  <span className="category__dot" style={{ background: c.hex }} />
+                  <span className="category__label">{c.label}</span>
+                  <span className="category__hint">{c.hint}</span>
+                </button>
               ))}
             </div>
+
+            <label className="reveal-toggle">
+              <input
+                type="checkbox"
+                checked={reveal}
+                onChange={(e) => setReveal(e.target.checked)}
+              />
+              <span className="reveal-toggle__text">
+                Show my name on this note
+                <span className="reveal-toggle__sub">
+                  {reveal
+                    ? `Posting as ${user.displayName || user.email}`
+                    : "Off — your note stays anonymous"}
+                </span>
+              </span>
+            </label>
 
             {error && <p className="modal-error" role="alert">{error}</p>}
 

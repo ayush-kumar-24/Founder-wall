@@ -66,6 +66,10 @@ class Note(Base, TimestampMixin):
         Uuid, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
     )
     content: Mapped[str] = mapped_column(String(512), nullable=False)
+    # Set at post time only when the founder chooses to reveal their identity;
+    # NULL means the note stays anonymous (the default). Snapshotting the name
+    # here keeps the public read path a plain column read — no user join.
+    author_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     color: Mapped[NoteColor] = mapped_column(
         value_enum(NoteColor),
         default=NoteColor.AMBER,

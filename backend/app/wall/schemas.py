@@ -13,6 +13,9 @@ from app.wall.models import NoteColor
 class NoteCreate(BaseModel):
     content: str = Field(min_length=1, max_length=280)
     color: NoteColor = NoteColor.AMBER
+    # Opt-in: when true, the author's name is snapshotted onto the note and
+    # shown publicly. Defaults to anonymous.
+    reveal_identity: bool = False
 
     @field_validator("content")
     @classmethod
@@ -39,13 +42,15 @@ class NoteUpdate(BaseModel):
 
 
 class NotePublic(BaseModel):
-    """Anonymous public view of a note — owner identity is never exposed."""
+    """Public view of a note. Anonymous by default; `author_name` is present
+    only when the founder chose to reveal their identity on this note."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     content: str
     color: NoteColor
+    author_name: str | None = None
     x: int
     y: int
     tile_id: int

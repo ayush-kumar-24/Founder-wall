@@ -52,6 +52,11 @@ export default function NoteViewer({
         >
           <span className="note__tape" aria-hidden="true" />
           <span className="note__text note-viewer__text">{note.text}</span>
+          {note.authorName && (
+            <span className="note__author note-viewer__author">
+              — {note.authorName}
+            </span>
+          )}
         </div>
 
         <div className="note-viewer__actions">
