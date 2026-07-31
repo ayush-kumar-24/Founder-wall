@@ -80,10 +80,11 @@ export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 export const GOXL_URL =
   process.env.NEXT_PUBLIC_GOXL_URL?.trim() || "https://goxl.in";
 
-/** GoXL WhatsApp community invite link. When set, the "WhatsApp community"
- *  action appears in the header/menu; empty hides it. */
+/** GoXL WhatsApp community invite link. Overridable via env; empty hides the
+ *  community actions. */
 export const GOXL_WHATSAPP_URL =
-  process.env.NEXT_PUBLIC_GOXL_WHATSAPP_URL?.trim() || "";
+  process.env.NEXT_PUBLIC_GOXL_WHATSAPP_URL?.trim() ||
+  "https://chat.whatsapp.com/BsZ5WBf1cvpGqpfrZFN8LH?s=cl&p=a&ilr=4&amv=1";
 
 /** How often the live figures are refreshed while the tab is visible. */
 export const STATS_POLL_INTERVAL_MS = 45_000;

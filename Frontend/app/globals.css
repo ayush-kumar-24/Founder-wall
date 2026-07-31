@@ -190,6 +190,106 @@ body::after {
 }
 .nav-menu__item.wa-link:hover { background: rgba(31, 138, 76, 0.08); }
 
+/* Desktop header: a premium WhatsApp-green pill instead of a plain link. */
+.header-corner__action.wa-link {
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: rgba(37, 211, 102, 0.12);
+  border: 1px solid rgba(37, 211, 102, 0.38);
+  color: #0f7a6d;
+  font-weight: 600;
+  text-decoration: none;
+}
+.header-corner__action.wa-link:hover {
+  background: rgba(37, 211, 102, 0.2);
+  color: #0b5f55;
+}
+
+/* ---------- Premium WhatsApp community card (intro overlay) ---------- */
+.wa-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "badge text cta"
+    "trust trust trust";
+  align-items: center;
+  gap: 3px 15px;
+  width: 100%;
+  margin-top: 20px;
+  padding: 15px 17px;
+  border-radius: 16px;
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  background: linear-gradient(180deg, rgba(37, 211, 102, 0.08), rgba(37, 211, 102, 0.02));
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 6px 18px -10px rgba(18, 140, 126, 0.45);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+.wa-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 13px 28px -12px rgba(18, 140, 126, 0.55);
+  border-color: rgba(37, 211, 102, 0.6);
+}
+.wa-card:focus-visible { outline: 3px solid #25d366; outline-offset: 3px; }
+.wa-card__badge {
+  grid-area: badge;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  color: #fff;
+  background: linear-gradient(160deg, #25d366, #128c7e);
+  box-shadow: 0 4px 10px -3px rgba(18, 140, 126, 0.6);
+}
+.wa-card__text {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+.wa-card__title { font-weight: 700; font-size: 1rem; color: var(--ink); }
+.wa-card__sub { font-size: 0.82rem; line-height: 1.4; color: var(--ink-soft); }
+.wa-card__cta {
+  grid-area: cta;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 17px;
+  border-radius: 999px;
+  background: #25d366;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 3px 0 #128c7e;
+  transition: transform 0.15s ease;
+}
+.wa-card:hover .wa-card__cta { transform: translateY(-1px); }
+.wa-card__trust {
+  grid-area: trust;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(37, 211, 102, 0.32);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+  text-align: center;
+}
+@media (max-width: 460px) {
+  .wa-card {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "badge text"
+      "cta cta"
+      "trust trust";
+    gap: 10px 13px;
+  }
+  .wa-card__cta { justify-content: center; margin-top: 4px; }
+}
+
 /* GoXL parent brand, pinned to the top-left corner on every device. */
 .brand-corner {
   position: absolute;

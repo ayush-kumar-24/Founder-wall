@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { GOXL_WHATSAPP_URL } from "@/lib/config";
+import WhatsAppIcon from "../WhatsAppIcon";
 
 /**
  * The welcome / "what is this" overlay. Shown on a founder's first visit and
@@ -66,6 +68,42 @@ export default function IntroOverlay({
         <button className="btn btn-primary intro-cta" onClick={onClose}>
           Step up to the wall
         </button>
+
+        {GOXL_WHATSAPP_URL && (
+          <a
+            className="wa-card"
+            href={GOXL_WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="wa-card__badge" aria-hidden="true">
+              <WhatsAppIcon size={26} />
+            </span>
+            <span className="wa-card__text">
+              <span className="wa-card__title">Join the founder community</span>
+              <span className="wa-card__sub">
+                A private WhatsApp group by GoXL — real founders, honest
+                conversations, zero spam.
+              </span>
+            </span>
+            <span className="wa-card__cta">
+              Join
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                <path
+                  d="M5 12h13m-5-5 5 5-5 5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <span className="wa-card__trust">
+              Official WhatsApp invite · Free to join · Powered by GoXL
+            </span>
+          </a>
+        )}
       </div>
     </div>
   );
