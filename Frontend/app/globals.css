@@ -577,62 +577,236 @@ body::after {
 }
 
 /* ---------- Note viewer (click-to-open enlarged note) ---------- */
+/* ---------- Note viewer: a premium two-panel dialog ---------- */
 .note-viewer {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-  max-height: 92dvh;
-  overflow-y: auto;
-  padding: 4px;
-  animation: modal-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  width: min(770px, 94vw);
+  max-height: 90dvh;
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(120% 70% at 30% -8%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 55%),
+    radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: auto, 3px 3px;
+  border-radius: 18px;
+  padding: clamp(20px, 3vw, 30px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 40px 90px -30px rgba(0, 0, 0, 0.6),
+    0 16px 40px rgba(30, 20, 5, 0.28);
+  overflow: hidden;
+  animation: modal-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .note-viewer .modal-close {
-  top: -6px;
-  right: -6px;
-  color: var(--paper);
-  background: rgba(20, 16, 8, 0.55);
+  top: 12px;
+  right: 14px;
   width: 34px;
   height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
+  color: var(--ink);
+  background: rgba(43, 36, 26, 0.08);
+  opacity: 0.85;
+  z-index: 3;
+}
+.note-viewer .modal-close:hover { opacity: 1; background: rgba(43, 36, 26, 0.16); }
+
+.nv-grid {
+  display: flex;
+  gap: clamp(18px, 3vw, 30px);
+  align-items: stretch;
+  max-height: calc(90dvh - 60px);
+}
+.nv-note-col {
+  flex: none;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 .note-viewer__note {
   position: relative;
   cursor: default;
   box-shadow:
     0 2px 2px rgba(0, 0, 0, 0.08),
-    0 30px 60px -18px rgba(0, 0, 0, 0.5),
-    0 10px 20px rgba(30, 20, 5, 0.22);
+    0 24px 48px -18px rgba(0, 0, 0, 0.4),
+    0 8px 16px rgba(30, 20, 5, 0.18);
 }
-.note-viewer__text {
-  font-size: 1.4rem;
-  line-height: 1.5;
-  max-height: none;
-  overflow: visible;
+.note-viewer__text { font-size: 1.3rem; line-height: 1.5; max-height: none; overflow: visible; }
+.nv-note-col__actions { display: flex; align-items: center; gap: 12px; }
+
+/* Premium like button */
+.nv-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 22px;
+  border: none;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #b9564e;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 5px 16px -5px rgba(30, 20, 5, 0.4), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.18s ease, color 0.18s ease;
 }
-.note-viewer__actions {
+.nv-like:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -7px rgba(185, 86, 78, 0.55); }
+.nv-like:active { transform: translateY(0) scale(0.95); }
+.nv-like__heart { width: 27px; height: 27px; transition: transform 0.25s cubic-bezier(0.3, 1.5, 0.5, 1); }
+.nv-like.is-liked { background: #b9564e; color: #fff; }
+.nv-like.is-liked .nv-like__heart { transform: scale(1.15); }
+.nv-like__count { font-variant-numeric: tabular-nums; min-width: 10px; }
+.nv-remove {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(43, 36, 26, 0.25);
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.nv-remove:hover { background: rgba(168, 58, 58, 0.08); border-color: rgba(168, 58, 58, 0.4); color: #a83a3a; }
+
+/* Comments panel — its own distinct, scrollable column */
+.nv-comments {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-left: clamp(18px, 3vw, 30px);
+  border-left: 1px solid rgba(43, 36, 26, 0.14);
+}
+.nv-comments__head {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 9px;
+  margin: 0 0 12px;
+  font-family: "Caveat", cursive;
+  font-size: 1.55rem;
+  color: var(--ink);
 }
-.like-btn--viewer {
-  position: static;
-  opacity: 1;
-  font-size: 1rem;
-  gap: 6px;
-  color: var(--paper);
-  background: rgba(20, 16, 8, 0.45);
-  padding: 9px 16px;
+.nv-comments__icon { width: 24px; height: 24px; color: var(--ink-soft); }
+.nv-comments__list {
+  flex: 1;
+  min-height: 130px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 6px;
+}
+.nv-comments__empty {
+  margin: auto 0;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 0.95rem;
+}
+.nv-comment { display: flex; gap: 11px; animation: modal-in 0.2s ease both; }
+.nv-comment__avatar {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.nv-comment__body {
+  flex: 1;
+  min-width: 0;
+  background: #fdf9ec;
+  border: 1px solid rgba(43, 36, 26, 0.1);
+  border-radius: 4px 12px 12px 12px;
+  padding: 8px 12px;
+}
+.nv-comment__meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.nv-comment__name { font-weight: 700; font-size: 0.86rem; color: var(--ink); }
+.nv-comment__time { font-size: 0.74rem; color: var(--ink-faint); }
+.nv-comment__text {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+/* Composer */
+.nv-composer {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(43, 36, 26, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.nv-composer__text {
+  width: 100%;
+  resize: vertical;
+  min-height: 46px;
+  border: 1.5px solid #d3c6a2;
+  border-radius: 12px;
+  padding: 10px 13px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: #fff;
+  color: var(--ink);
+  transition: border-color 0.15s ease;
+}
+.nv-composer__text:focus { outline: none; border-color: #8a7c52; }
+.nv-composer__row { display: flex; gap: 9px; }
+.nv-composer__name {
+  flex: 1;
+  min-width: 0;
+  border: 1.5px solid #d3c6a2;
   border-radius: 999px;
+  padding: 9px 15px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: #fff;
+  color: var(--ink);
 }
-.like-btn--viewer .heart { font-size: 1.15rem; }
-.like-btn--viewer.liked .heart::before { color: #ff8b8b; }
-.like-btn--viewer:hover { opacity: 1; transform: scale(1.05); }
+.nv-composer__name:focus { outline: none; border-color: #8a7c52; }
+.nv-composer__send {
+  flex: none;
+  padding: 9px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.nv-composer__send:hover:not(:disabled) { transform: translateY(-2px); }
+.nv-composer__send:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+
+/* Stack the two panels on smaller screens; the whole dialog scrolls. */
+@media (max-width: 680px) {
+  .note-viewer { width: min(440px, 94vw); overflow-y: auto; }
+  .nv-grid { flex-direction: column; align-items: center; gap: 18px; max-height: none; }
+  .nv-note-col { width: 100%; }
+  .nv-comments {
+    width: 100%;
+    padding-left: 0;
+    border-left: none;
+    padding-top: 16px;
+    border-top: 1px solid rgba(43, 36, 26, 0.14);
+  }
+  .nv-comments__list { overflow: visible; min-height: 0; }
+}
 
 /* ---------- The "+" paper tag (from the original design) ---------- */
 .plus-tag {
@@ -882,64 +1056,6 @@ body::after {
   opacity: 0.8;
 }
 .note__meta-item--like { color: #c0574f; }
-
-/* ---------- Comments in the note viewer ---------- */
-.comments {
-  width: min(340px, 82vw);
-  margin-top: 4px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(244, 236, 216, 0.25);
-}
-.comments__title {
-  margin: 0 0 10px;
-  font-family: "Caveat", cursive;
-  font-size: 1.35rem;
-  color: var(--paper);
-}
-.comments__list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 34vh;
-  overflow-y: auto;
-}
-.comments__empty {
-  margin: 0;
-  font-size: 0.9rem;
-  color: rgba(244, 236, 216, 0.7);
-}
-.comment {
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 8px;
-  padding: 8px 11px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
-  text-align: left;
-}
-.comment__body { margin: 0; font-size: 0.92rem; line-height: 1.42; color: #2b2417; overflow-wrap: anywhere; }
-.comment__author {
-  display: block;
-  margin-top: 3px;
-  font-size: 0.75rem;
-  font-style: italic;
-  color: #6b6048;
-}
-.comment-form { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-.comment-form__text,
-.comment-form__name {
-  width: 100%;
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  border-radius: 8px;
-  padding: 9px 11px;
-  font-family: inherit;
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--ink);
-}
-.comment-form__text { resize: vertical; min-height: 44px; font-size: 0.95rem; }
-.comment-form__row { display: flex; gap: 8px; }
-.comment-form__name { flex: 1; font-size: 0.9rem; }
-.comment-form__send { flex: none; padding: 9px 18px; }
-.comment-form__text:focus,
-.comment-form__name:focus { outline: 2px solid #8a7c52; outline-offset: 1px; }
 
 .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
 .modal-close {
