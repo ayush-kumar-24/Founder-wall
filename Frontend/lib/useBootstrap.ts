@@ -15,7 +15,9 @@ export function useBootstrap(): void {
   const setNotes = useWall((s) => s.setNotes);
   const setNotesLoaded = useWall((s) => s.setNotesLoaded);
   const upsertNote = useWall((s) => s.upsertNote);
+  const patchNote = useWall((s) => s.patchNote);
   const removeNoteById = useWall((s) => s.removeNoteById);
+  const setLiveComment = useWall((s) => s.setLiveComment);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +46,13 @@ export function useBootstrap(): void {
           break;
         case "note.deleted":
           removeNoteById(numericId(event.id));
+          break;
+        case "note.liked":
+          patchNote(numericId(event.id), { likes: event.likes });
+          break;
+        case "comment.created":
+          patchNote(numericId(event.noteId), { commentCount: event.commentCount });
+          setLiveComment({ noteApiId: event.noteId, comment: event.comment });
           break;
         default:
           break; // counters/presence are served by the stats poll

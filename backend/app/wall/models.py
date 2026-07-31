@@ -76,3 +76,23 @@ class Note(Base, TimestampMixin):
     x: Mapped[int | None] = mapped_column(Integer, nullable=True)
     y: Mapped[int | None] = mapped_column(Integer, nullable=True)
     tile_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    # Public, global engagement counters, visible to everyone. `likes` is deduped
+    # per-browser client-side; `comment_count` is denormalised so tile reads stay
+    # a plain column read.
+    likes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    comment_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class Comment(Base, TimestampMixin):
+    """A public comment on a note. Unlimited per note."""
+
+    __tablename__ = "comments"
+    __table_args__ = (Index("ix_comments_note", "note_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    note_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("notes.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    content: Mapped[str] = mapped_column(String(280), nullable=False)
+    # Optional name the commenter typed. NULL = anonymous.
+    author_name: Mapped[str | None] = mapped_column(String(80), nullable=True)

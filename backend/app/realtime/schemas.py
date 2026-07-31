@@ -12,6 +12,8 @@ class EventType(StrEnum):
     NOTE_CREATED = "note.created"
     NOTE_UPDATED = "note.updated"
     NOTE_DELETED = "note.deleted"
+    NOTE_LIKED = "note.liked"
+    COMMENT_CREATED = "comment.created"
     COUNTERS_UPDATED = "counters.updated"
     PRESENCE_UPDATED = "presence.updated"
     MODERATION_UPDATED = "moderation.updated"

@@ -8,13 +8,15 @@
 // wall in the morning.
 
 import { WS_URL } from "./config";
-import type { ApiNote } from "./mapping";
+import type { ApiComment, ApiNote } from "./mapping";
 import type { WallStats } from "./api";
 
 export type WallEvent =
   | { type: "note.created"; note: ApiNote }
   | { type: "note.updated"; note: ApiNote }
   | { type: "note.deleted"; id: string }
+  | { type: "note.liked"; id: string; likes: number }
+  | { type: "comment.created"; noteId: string; commentCount: number; comment: ApiComment }
   | { type: "counters.updated"; stats: WallStats }
   | { type: "presence.updated"; online: number };
 
@@ -39,6 +41,15 @@ function parseFrame(raw: string): WallEvent | null {
       return { type: "note.updated", note: p as unknown as ApiNote };
     case "note.deleted":
       return { type: "note.deleted", id: String(p.id) };
+    case "note.liked":
+      return { type: "note.liked", id: String(p.id), likes: Number(p.likes ?? 0) };
+    case "comment.created":
+      return {
+        type: "comment.created",
+        noteId: String(p.note_id),
+        commentCount: Number(p.comment_count ?? 0),
+        comment: p.comment as unknown as ApiComment,
+      };
     case "counters.updated":
       return {
         type: "counters.updated",

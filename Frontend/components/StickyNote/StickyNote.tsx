@@ -90,6 +90,18 @@ function StickyNote({ note, isMine, fresh, layout, scale = 1, onOpen }: StickyNo
       {note.authorName && (
         <span className="note__author">— {note.authorName}</span>
       )}
+      {(note.likes > 0 || note.commentCount > 0) && (
+        <span className="note__meta" aria-hidden="true">
+          {note.likes > 0 && (
+            <span className="note__meta-item note__meta-item--like">
+              ♥ {note.likes}
+            </span>
+          )}
+          {note.commentCount > 0 && (
+            <span className="note__meta-item">💬 {note.commentCount}</span>
+          )}
+        </span>
+      )}
       {hasUnderline(note.id) && (
         <span className="note__underline" aria-hidden="true" />
       )}

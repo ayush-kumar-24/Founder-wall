@@ -58,6 +58,8 @@ class NotePublic(BaseModel):
     content: str
     color: NoteColor
     author_name: str | None = None
+    likes: int = 0
+    comment_count: int = 0
     x: int
     y: int
     tile_id: int
@@ -82,6 +84,40 @@ class NoteOwned(NotePublic):
     """The note as seen by its owner (adds mutability affordances)."""
 
     updated_at: datetime
+
+
+class CommentCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=280)
+    author_name: str | None = Field(default=None, max_length=80)
+
+    @field_validator("content")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Comment cannot be blank")
+        return cleaned
+
+    @field_validator("author_name")
+    @classmethod
+    def _clean_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+
+class CommentPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    content: str
+    author_name: str | None = None
+    created_at: datetime
+
+
+class LikeCount(BaseModel):
+    likes: int
 
 
 class TileSummary(BaseModel):

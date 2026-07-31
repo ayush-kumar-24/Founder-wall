@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { NoteData } from "./notes";
 import type { UserProfile } from "./auth";
-import type { ApiNote, NoteColor } from "./mapping";
+import type { ApiComment, ApiNote, NoteColor } from "./mapping";
 
 export type Phase =
   | "entrance" // darkness → light bloom; user cannot interact
@@ -35,6 +35,7 @@ interface WallState {
   setNotes: (notes: NoteData[]) => void;
   setNotesLoaded: (loaded: boolean) => void;
   upsertNote: (note: NoteData) => void;
+  patchNote: (numericId: number, patch: Partial<NoteData>) => void;
   removeNoteById: (numericId: number) => void;
 
   // — the note in flight toward the wall (its place already assigned by the
@@ -46,6 +47,11 @@ interface WallState {
   // then it's cleared.
   justPostedId: number | null;
   setJustPostedId: (id: number | null) => void;
+
+  // The most recent comment pushed over the live feed — an open NoteViewer
+  // watches this to append comments in real time.
+  liveComment: { noteApiId: string; comment: ApiComment } | null;
+  setLiveComment: (c: { noteApiId: string; comment: ApiComment } | null) => void;
 
   // — identity —
   user: UserProfile | null;
@@ -88,6 +94,14 @@ export const useWall = create<WallState>((set) => ({
       next[i] = note;
       return { notes: next, notesVersion: s.notesVersion + 1 };
     }),
+  patchNote: (numericId, patch) =>
+    set((s) => {
+      const i = s.notes.findIndex((n) => n.id === numericId);
+      if (i === -1) return s;
+      const next = s.notes.slice();
+      next[i] = { ...next[i], ...patch };
+      return { notes: next };
+    }),
   removeNoteById: (numericId) =>
     set((s) => {
       if (!s.notes.some((n) => n.id === numericId)) return s;
@@ -102,6 +116,9 @@ export const useWall = create<WallState>((set) => ({
 
   justPostedId: null,
   setJustPostedId: (id) => set({ justPostedId: id }),
+
+  liveComment: null,
+  setLiveComment: (c) => set({ liveComment: c }),
 
   user: null,
   authReady: false,

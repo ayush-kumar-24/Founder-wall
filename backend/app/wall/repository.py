@@ -7,7 +7,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.wall.models import Note, NoteStatus
+from app.wall.models import Comment, Note, NoteStatus
 
 
 class NoteRepository:
@@ -16,6 +16,21 @@ class NoteRepository:
 
     async def get(self, note_id: uuid.UUID) -> Note | None:
         return await self._session.get(Note, note_id)
+
+    # — comments & likes —
+    async def add_comment(self, comment: Comment) -> Comment:
+        self._session.add(comment)
+        await self._session.flush()
+        await self._session.refresh(comment)
+        return comment
+
+    async def list_comments(self, note_id: uuid.UUID) -> list[Comment]:
+        result = await self._session.execute(
+            select(Comment)
+            .where(Comment.note_id == note_id)
+            .order_by(Comment.created_at)
+        )
+        return list(result.scalars().all())
 
     async def get_active_for_user(self, user_id: uuid.UUID) -> Note | None:
         result = await self._session.execute(

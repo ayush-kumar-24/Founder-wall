@@ -54,7 +54,7 @@ export default function Wall({ onShare }: { onShare: () => void }) {
   const notes = useWall((s) => s.notes);
   const notesLoaded = useWall((s) => s.notesLoaded);
   const justPostedId = useWall((s) => s.justPostedId);
-  const { isLiked, count, toggle } = useLikes();
+  const { isLiked, toggle } = useLikes();
   const { remove } = useWallActions();
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -314,8 +314,7 @@ export default function Wall({ onShare }: { onShare: () => void }) {
           note={openNote as NoteData}
           isMine={mineIds.has(openNote.id)}
           liked={isLiked(openNote.id)}
-          likeCount={count(openNote.id)}
-          onLike={() => toggle(openNote.id)}
+          onLike={() => toggle(openNote as NoteData)}
           onRemove={async () => {
             await remove(openNote.id);
             setOpenId(null);

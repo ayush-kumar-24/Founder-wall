@@ -3,7 +3,7 @@
 // or HTTP status codes.
 
 import { API_BASE_URL, REQUEST_TIMEOUT_MS } from "./config";
-import type { ApiNote, NoteColor } from "./mapping";
+import type { ApiComment, ApiNote, NoteColor } from "./mapping";
 
 export class ApiError extends Error {
   constructor(
@@ -175,4 +175,42 @@ export async function deleteNote(noteId: string, token: string): Promise<void> {
   const res = await mutate(`/wall/notes/${noteId}`, "DELETE", { token });
   if (res.status === 404) return; // already gone / not ours — treat as removed
   if (!res.ok) throw new ApiError("Could not remove the note.", res.status);
+}
+
+// ————————————————————————————————————————————————————————————————
+// COMMENTS & LIKES (open, shared, visible to everyone)
+// ————————————————————————————————————————————————————————————————
+
+/** Comments on a note, oldest first. */
+export async function fetchComments(
+  noteId: string,
+  signal?: AbortSignal
+): Promise<ApiComment[]> {
+  return request<ApiComment[]>(`/wall/notes/${noteId}/comments`, signal);
+}
+
+/** Add a public comment to a note. Open to everyone; name optional. */
+export async function createComment(
+  noteId: string,
+  content: string,
+  authorName?: string | null
+): Promise<ApiComment> {
+  const res = await mutate(`/wall/notes/${noteId}/comments`, "POST", {
+    content,
+    author_name: authorName || null,
+  });
+  if (res.status === 422) {
+    throw new ContentRejectedError(
+      await readError(res, "That comment could not be accepted.")
+    );
+  }
+  if (!res.ok) throw new ApiError(await readError(res, "Could not post comment."), res.status);
+  return (await res.json()) as ApiComment;
+}
+
+/** Nudge a note's shared like tally. Returns the new total. */
+export async function setLike(noteId: string, liked: boolean): Promise<number> {
+  const res = await mutate(`/wall/notes/${noteId}/like`, liked ? "POST" : "DELETE");
+  if (!res.ok) throw new ApiError("Could not update like.", res.status);
+  return ((await res.json()) as { likes: number }).likes;
 }

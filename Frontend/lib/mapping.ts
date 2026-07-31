@@ -11,10 +11,20 @@ export interface ApiNote {
   content: string;
   color: NoteColor;
   author_name: string | null; // present only when the founder revealed their identity
+  likes: number; // shared like tally, visible to everyone
+  comment_count: number;
   x: number; // grid column (server-assigned; unused by the 2D wall)
   y: number; // grid row
   tile_id: number;
   created_at: string; // ISO 8601
+}
+
+/** A public comment on a note. */
+export interface ApiComment {
+  id: string; // uuid
+  content: string;
+  author_name: string | null;
+  created_at: string;
 }
 
 /** The colour enum the backend accepts. */
@@ -108,8 +118,11 @@ export function numericId(id: string): number {
 export function apiNoteToNoteData(api: ApiNote): NoteData {
   return {
     id: numericId(api.id),
+    apiId: api.id,
     text: api.content,
     color: COLOR_CLASS[api.color] ?? "yellow",
     authorName: api.author_name ?? null,
+    likes: api.likes ?? 0,
+    commentCount: api.comment_count ?? 0,
   };
 }

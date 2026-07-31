@@ -14,10 +14,13 @@ from app.realtime.schemas import EventType, WallEvent
 from app.shared.exceptions import ConflictError, NotFoundError, ValidationError
 from app.stats.counters import Counters
 from app.stats.service import StatsService
-from app.wall.models import Note, NoteColor, NoteStatus
+from app.wall.models import Comment, Note, NoteColor, NoteStatus
 from app.wall.placement import WallGeometry
 from app.wall.repository import NoteRepository
 from app.wall.schemas import (
+    CommentCreate,
+    CommentPublic,
+    LikeCount,
     NoteCreate,
     NoteCreated,
     NoteOwned,
@@ -77,6 +80,55 @@ class WallService:
         if not note.delete_token or not secrets.compare_digest(note.delete_token, token):
             raise NotFoundError("Active note not found")
         await self._retire(note)
+
+    # — comments & likes (open, visible to everyone) —
+    async def add_comment(
+        self, note_id: uuid.UUID, data: CommentCreate
+    ) -> CommentPublic:
+        note = await self._repo.get(note_id)
+        if note is None or note.status != NoteStatus.ACTIVE:
+            raise NotFoundError("Note not found")
+        screen = self._screener.screen(data.content)
+        if not screen.allowed:
+            raise ValidationError("Comment rejected by content policy", code="content_rejected")
+
+        comment = await self._repo.add_comment(
+            Comment(note_id=note_id, content=data.content, author_name=data.author_name)
+        )
+        note.comment_count = note.comment_count + 1
+        await self._session.flush()
+
+        public = CommentPublic.model_validate(comment)
+        await self._events.publish(
+            WallEvent(
+                type=EventType.COMMENT_CREATED,
+                payload={
+                    "note_id": str(note_id),
+                    "comment_count": note.comment_count,
+                    "comment": public.model_dump(mode="json"),
+                },
+            )
+        )
+        return public
+
+    async def list_comments(self, note_id: uuid.UUID) -> list[CommentPublic]:
+        comments = await self._repo.list_comments(note_id)
+        return [CommentPublic.model_validate(c) for c in comments]
+
+    async def set_like(self, note_id: uuid.UUID, delta: int) -> LikeCount:
+        """Nudge a note's shared like tally (+1 like, -1 unlike). Never negative."""
+        note = await self._repo.get(note_id)
+        if note is None or note.status != NoteStatus.ACTIVE:
+            raise NotFoundError("Note not found")
+        note.likes = max(0, note.likes + delta)
+        await self._session.flush()
+        await self._events.publish(
+            WallEvent(
+                type=EventType.NOTE_LIKED,
+                payload={"id": str(note_id), "likes": note.likes},
+            )
+        )
+        return LikeCount(likes=note.likes)
 
     async def update_note(
         self, user_id: uuid.UUID, note_id: uuid.UUID, data: NoteUpdate
