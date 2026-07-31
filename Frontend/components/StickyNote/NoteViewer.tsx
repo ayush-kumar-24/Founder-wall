@@ -20,8 +20,17 @@ function avatarColor(name: string | null): string {
 function initial(name: string | null): string {
   return (name?.trim()?.[0] || "?").toUpperCase();
 }
+function parseTs(iso: string): number {
+  if (!iso) return 0;
+  // A timestamp with no zone (dev SQLite emits naive UTC) must be read as UTC,
+  // not local time — otherwise "just now" shows as hours ago. Postgres sends an
+  // explicit offset, which is left untouched.
+  const hasZone = /(?:Z|[+-]\d\d:?\d\d)$/i.test(iso);
+  return new Date(hasZone ? iso : `${iso}Z`).getTime();
+}
+
 function relTime(iso: string): string {
-  const t = new Date(iso).getTime();
+  const t = parseTs(iso);
   if (!t) return "";
   const s = Math.max(0, (Date.now() - t) / 1000);
   if (s < 45) return "just now";
@@ -31,7 +40,7 @@ function relTime(iso: string): string {
   if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
-  return new Date(iso).toLocaleDateString();
+  return new Date(t).toLocaleDateString();
 }
 
 function Heart({ filled }: { filled: boolean }) {
