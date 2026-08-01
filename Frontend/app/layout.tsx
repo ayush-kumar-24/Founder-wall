@@ -79,7 +79,10 @@ const jsonLd = {
       logo: `${SITE_URL}/Goxl-Entrepreneurship.png`,
       description:
         "GoXL builds tools and communities for founders and entrepreneurs.",
-      sameAs: ["https://goxl.in", "https://chat.whatsapp.com/BsZ5WBf1cvpGqpfrZFN8LH"],
+      sameAs: [
+        "https://www.linkedin.com/company/goxl-consulting-solutions-private-limited/",
+        "https://www.instagram.com/goxl.enterpreneurship",
+      ],
     },
     {
       "@type": "WebSite",
