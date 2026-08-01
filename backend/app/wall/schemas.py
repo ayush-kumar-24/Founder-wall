@@ -15,10 +15,10 @@ class NoteCreate(BaseModel):
     color: NoteColor = NoteColor.AMBER
     # Optional name the poster types. Empty/blank → anonymous.
     author_name: str | None = Field(default=None, max_length=80)
-    # Required: the startup / org they're from, or what they're building.
-    affiliation: str = Field(min_length=1, max_length=120)
+    # Optional: the startup / org they're from, or what they're building.
+    affiliation: str | None = Field(default=None, max_length=120)
 
-    @field_validator("content", "affiliation")
+    @field_validator("content")
     @classmethod
     def _strip(cls, value: str) -> str:
         cleaned = value.strip()
@@ -26,9 +26,9 @@ class NoteCreate(BaseModel):
             raise ValueError("This field cannot be blank")
         return cleaned
 
-    @field_validator("author_name")
+    @field_validator("author_name", "affiliation")
     @classmethod
-    def _clean_name(cls, value: str | None) -> str | None:
+    def _clean_optional(cls, value: str | None) -> str | None:
         if value is None:
             return None
         cleaned = value.strip()
@@ -92,10 +92,10 @@ class NoteOwned(NotePublic):
 class CommentCreate(BaseModel):
     content: str = Field(min_length=1, max_length=280)
     author_name: str | None = Field(default=None, max_length=80)
-    # Required: startup / org, or what they're building.
-    affiliation: str = Field(min_length=1, max_length=120)
+    # Optional: startup / org, or what they're building.
+    affiliation: str | None = Field(default=None, max_length=120)
 
-    @field_validator("content", "affiliation")
+    @field_validator("content")
     @classmethod
     def _strip(cls, value: str) -> str:
         cleaned = value.strip()
@@ -103,9 +103,9 @@ class CommentCreate(BaseModel):
             raise ValueError("This field cannot be blank")
         return cleaned
 
-    @field_validator("author_name")
+    @field_validator("author_name", "affiliation")
     @classmethod
-    def _clean_name(cls, value: str | None) -> str | None:
+    def _clean_optional(cls, value: str | None) -> str | None:
         if value is None:
             return None
         cleaned = value.strip()

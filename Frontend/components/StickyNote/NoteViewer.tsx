@@ -114,7 +114,7 @@ export default function NoteViewer({
 
   const submitComment = async () => {
     const body = text.trim();
-    if (!body || !affiliation.trim()) return;
+    if (!body) return;
     setPosting(true);
     setError(null);
     try {
@@ -250,9 +250,8 @@ export default function NoteViewer({
                 value={affiliation}
                 maxLength={AFFILIATION_MAX}
                 onChange={(e) => setAffiliation(e.target.value)}
-                placeholder="Your startup / what you're building *"
-                aria-label="Your startup or what you're building (required)"
-                required
+                placeholder="Your startup / what you're building (optional)"
+                aria-label="Your startup or what you're building (optional)"
               />
               <div className="nv-composer__row">
                 <input
@@ -267,11 +266,7 @@ export default function NoteViewer({
                 <button
                   className="nv-composer__send"
                   onClick={submitComment}
-                  disabled={
-                    posting ||
-                    text.trim().length === 0 ||
-                    affiliation.trim().length === 0
-                  }
+                  disabled={posting || text.trim().length === 0}
                   aria-label="Post comment"
                 >
                   {posting ? "…" : "Post"}

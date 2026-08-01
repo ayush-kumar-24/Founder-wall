@@ -147,15 +147,14 @@ export default function ShareModal({
           </div>
 
           <label className="name-field">
-            <span className="field-label">Your startup or what you&apos;re building *</span>
+            <span className="field-label">Your startup or what you&apos;re building (optional)</span>
             <input
               type="text"
               value={affiliation}
               maxLength={AFFILIATION_MAX}
               onChange={(e) => setAffiliation(e.target.value)}
               placeholder="e.g. Acme Inc — or “building an AI tutor”"
-              aria-label="Your startup or what you're building (required)"
-              required
+              aria-label="Your startup or what you're building (optional)"
             />
           </label>
 
@@ -180,11 +179,7 @@ export default function ShareModal({
             <button
               className="btn btn-primary"
               onClick={submit}
-              disabled={
-                busy ||
-                text.trim().length === 0 ||
-                affiliation.trim().length === 0
-              }
+              disabled={busy || text.trim().length === 0}
             >
               {busy ? "Pinning…" : "Pin it to the wall"}
             </button>

@@ -28,8 +28,6 @@ export function useWallActions() {
     ): Promise<PostResult> => {
       const text = content.trim();
       if (!text) return { ok: false, error: "Write something first." };
-      if (!affiliation.trim())
-        return { ok: false, error: "Add your startup or what you're building." };
       try {
         const api = await createNote(text, color, affiliation, authorName);
         const nd = apiNoteToNoteData(api);
