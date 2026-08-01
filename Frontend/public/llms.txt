@@ -1,0 +1,32 @@
+# Founder's Wall
+
+> Founder's Wall is an anonymous community by GoXL where startup founders pin the problems, questions, and wins they can't say out loud — and reply with honest advice. No account needed to read, post, like, or comment.
+
+## About
+
+Founder's Wall is a public, judgment-free wall for entrepreneurs. Founders anonymously share what they're struggling with, ask questions that feel "too basic," celebrate small wins, and leave advice for others walking the same path. Every note can be liked and commented on by anyone, so useful answers surface to the top.
+
+- **Project name:** Founder's Wall
+- **Purpose:** Give founders a safe, anonymous space to be honest about entrepreneurship — the doubts, the failures, the questions — and to help each other with real advice.
+- **Owner:** GoXL (https://goxl.in) — GoXL builds tools and communities for founders and entrepreneurs.
+- **Contact:** info@goxl.in
+- **Community:** GoXL WhatsApp community — https://chat.whatsapp.com/BsZ5WBf1cvpGqpfrZFN8LH
+
+## Key topics
+
+Founder community, startup community, anonymous founder discussions, entrepreneurship, founder problems, startup advice, founder network, mental health for founders, building in public.
+
+## How it works
+
+- Anyone can post a sticky note in one of three categories: Advice, Problem, or Experience.
+- Posting is anonymous by default; a name is optional.
+- Any note can be liked (a shared, public count) and commented on. Comments are unlimited and public.
+- There is no login, no algorithm, and no ads.
+
+## Primary pages
+
+- [Founder's Wall](https://founderwall.goxl.in): the live wall of founder notes.
+
+## Allowed AI crawlers
+
+All reputable AI and search crawlers are welcome to read and index this site, including GPTBot, OAI-SearchBot, ChatGPT-User, ClaudeBot, Claude-Web, Google-Extended, PerplexityBot, and Bingbot. See /robots.txt.

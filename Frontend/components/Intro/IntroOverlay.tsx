@@ -40,9 +40,9 @@ export default function IntroOverlay({
           ✕
         </button>
 
-        <h1 id="intro-title" className="intro-title">
+        <h2 id="intro-title" className="intro-title">
           Founder&apos;s Wall
-        </h1>
+        </h2>
         <p className="intro-sub">Your problems. Your questions. Zero judgment.</p>
 
         <div className="intro-body">

@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     log_json: bool = True
 
     # --- HTTP ------------------------------------------------------------
-    project_name: str = "Founder Wall"
+    project_name: str = "Founder's Wall"
     api_prefix: str = ""
     # NoDecode: pydantic-settings JSON-decodes complex fields inside the env
     # source, which rejects a plain "*" or "a.com,b.com" before any validator

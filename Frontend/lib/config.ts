@@ -43,7 +43,7 @@ if (typeof window !== "undefined") {
   if (!servedLocally && /localhost|127\.0\.0\.1/.test(API_BASE_URL)) {
     // eslint-disable-next-line no-console
     console.error(
-      `[Founder Wall] NEXT_PUBLIC_API_URL resolves to "${API_BASE_URL}" but the ` +
+      `[Founder's Wall] NEXT_PUBLIC_API_URL resolves to "${API_BASE_URL}" but the ` +
         `app is served from "${host}". Set NEXT_PUBLIC_API_URL to your backend's ` +
         `public https URL in the deployment environment and rebuild.`
     );

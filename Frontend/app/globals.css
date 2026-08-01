@@ -3,6 +3,40 @@
 @tailwind utilities;
 
 /* ============================================================
+   Self-hosted fonts (no Google CDN). Files live in
+   public/assets/fonts. `swap` + preload (see layout) avoids
+   invisible text and keeps layout shift minimal.
+   ============================================================ */
+@font-face {
+  font-family: "Kalam";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/Kalam-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Kalam";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/assets/fonts/Kalam-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/assets/fonts/Caveat-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Caveat";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/assets/fonts/Caveat-700.woff2") format("woff2");
+}
+
+/* ============================================================
    FOUNDER'S WALL — a single, no-scroll wall. All notes fit the
    viewport; you hover to enlarge and read. Paper + sticky-note
    aesthetic with real depth.

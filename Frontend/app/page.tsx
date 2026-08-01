@@ -39,6 +39,25 @@ export default function Page() {
   return (
     <main className="page">
       <Header onAbout={() => setIntroOpen(true)} />
+
+      {/* Server-rendered context for search & generative engines. Visually
+          hidden (design unchanged) but present in the HTML and read by
+          assistive tech — genuine description, not keyword stuffing. */}
+      <section className="sr-only" aria-label="About Founder's Wall">
+        <h2>About Founder&apos;s Wall</h2>
+        <p>
+          Founder&apos;s Wall is an anonymous founder community by GoXL — a
+          judgment-free wall where startup founders share the problems,
+          questions, and wins they can&apos;t say out loud. Post or read honest
+          startup advice, ask about founder problems, and support other
+          founders. No account is required to read, post, like, or comment.
+        </p>
+        <p>
+          Founder&apos;s Wall is part of GoXL, which builds tools and
+          communities for founders and entrepreneurship.
+        </p>
+      </section>
+
       <Wall onShare={openShare} />
       <PlusTag onClick={openShare} />
       <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
