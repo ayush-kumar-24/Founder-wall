@@ -23,12 +23,15 @@ export function useWallActions() {
     async (
       content: string,
       color: NoteColor,
+      affiliation: string,
       authorName?: string | null
     ): Promise<PostResult> => {
       const text = content.trim();
       if (!text) return { ok: false, error: "Write something first." };
+      if (!affiliation.trim())
+        return { ok: false, error: "Add your startup or what you're building." };
       try {
-        const api = await createNote(text, color, authorName);
+        const api = await createNote(text, color, affiliation, authorName);
         const nd = apiNoteToNoteData(api);
         // Remember it so this browser can delete it later.
         rememberNote(nd.id, api.id, api.delete_token);

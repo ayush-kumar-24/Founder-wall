@@ -8,6 +8,7 @@ import { fetchComments, createComment } from "@/lib/api";
 
 const COMMENT_MAX = 280;
 const NAME_MAX = 80;
+const AFFILIATION_MAX = 120;
 
 const AVATAR_COLORS = [
   "#e08a7f", "#e6b45a", "#8bbf7a", "#6fb0c9", "#a790d0", "#d98cae", "#7fb6a0",
@@ -80,6 +81,7 @@ export default function NoteViewer({
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [name, setName] = useState("");
+  const [affiliation, setAffiliation] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,11 +114,11 @@ export default function NoteViewer({
 
   const submitComment = async () => {
     const body = text.trim();
-    if (!body) return;
+    if (!body || !affiliation.trim()) return;
     setPosting(true);
     setError(null);
     try {
-      const created = await createComment(note.apiId, body, name);
+      const created = await createComment(note.apiId, body, affiliation, name);
       setComments((prev) =>
         prev.some((c) => c.id === created.id) ? prev : [...prev, created]
       );
@@ -127,6 +129,10 @@ export default function NoteViewer({
       setPosting(false);
     }
   };
+
+  // Byline = optional name + the (required) affiliation.
+  const byline = (n: string | null, a: string | null) =>
+    [n, a].filter(Boolean).join(" · ");
 
   const noteStyle = {
     "--note-size": "300px",
@@ -150,9 +156,9 @@ export default function NoteViewer({
             <div className={`note ${note.color} note-viewer__note`} style={noteStyle}>
               <span className="note__tape" aria-hidden="true" />
               <span className="note__text note-viewer__text">{note.text}</span>
-              {note.authorName && (
+              {(note.authorName || note.affiliation) && (
                 <span className="note__author note-viewer__author">
-                  — {note.authorName}
+                  — {byline(note.authorName ?? null, note.affiliation ?? null)}
                 </span>
               )}
             </div>
@@ -206,15 +212,15 @@ export default function NoteViewer({
                   <div key={c.id} className="nv-comment">
                     <span
                       className="nv-comment__avatar"
-                      style={{ background: avatarColor(c.author_name) }}
+                      style={{ background: avatarColor(c.author_name || c.affiliation) }}
                       aria-hidden="true"
                     >
-                      {initial(c.author_name)}
+                      {initial(c.author_name || c.affiliation)}
                     </span>
                     <div className="nv-comment__body">
                       <div className="nv-comment__meta">
                         <span className="nv-comment__name">
-                          {c.author_name || "Anonymous"}
+                          {byline(c.author_name, c.affiliation) || "Anonymous"}
                         </span>
                         <span className="nv-comment__time">{relTime(c.created_at)}</span>
                       </div>
@@ -238,6 +244,16 @@ export default function NoteViewer({
                 aria-label="Your comment"
                 rows={2}
               />
+              <input
+                className="nv-composer__name"
+                type="text"
+                value={affiliation}
+                maxLength={AFFILIATION_MAX}
+                onChange={(e) => setAffiliation(e.target.value)}
+                placeholder="Your startup / what you're building *"
+                aria-label="Your startup or what you're building (required)"
+                required
+              />
               <div className="nv-composer__row">
                 <input
                   className="nv-composer__name"
@@ -251,7 +267,11 @@ export default function NoteViewer({
                 <button
                   className="nv-composer__send"
                   onClick={submitComment}
-                  disabled={posting || text.trim().length === 0}
+                  disabled={
+                    posting ||
+                    text.trim().length === 0 ||
+                    affiliation.trim().length === 0
+                  }
                   aria-label="Post comment"
                 >
                   {posting ? "…" : "Post"}

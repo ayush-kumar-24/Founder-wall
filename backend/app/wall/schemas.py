@@ -15,13 +15,15 @@ class NoteCreate(BaseModel):
     color: NoteColor = NoteColor.AMBER
     # Optional name the poster types. Empty/blank → anonymous.
     author_name: str | None = Field(default=None, max_length=80)
+    # Required: the startup / org they're from, or what they're building.
+    affiliation: str = Field(min_length=1, max_length=120)
 
-    @field_validator("content")
+    @field_validator("content", "affiliation")
     @classmethod
     def _strip(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned:
-            raise ValueError("Note content cannot be blank")
+            raise ValueError("This field cannot be blank")
         return cleaned
 
     @field_validator("author_name")
@@ -58,6 +60,7 @@ class NotePublic(BaseModel):
     content: str
     color: NoteColor
     author_name: str | None = None
+    affiliation: str | None = None
     likes: int = 0
     comment_count: int = 0
     x: int
@@ -89,13 +92,15 @@ class NoteOwned(NotePublic):
 class CommentCreate(BaseModel):
     content: str = Field(min_length=1, max_length=280)
     author_name: str | None = Field(default=None, max_length=80)
+    # Required: startup / org, or what they're building.
+    affiliation: str = Field(min_length=1, max_length=120)
 
-    @field_validator("content")
+    @field_validator("content", "affiliation")
     @classmethod
     def _strip(cls, value: str) -> str:
         cleaned = value.strip()
         if not cleaned:
-            raise ValueError("Comment cannot be blank")
+            raise ValueError("This field cannot be blank")
         return cleaned
 
     @field_validator("author_name")
@@ -113,6 +118,7 @@ class CommentPublic(BaseModel):
     id: uuid.UUID
     content: str
     author_name: str | None = None
+    affiliation: str | None = None
     created_at: datetime
 
 

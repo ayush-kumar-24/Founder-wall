@@ -68,10 +68,13 @@ export default function Wall({ onShare }: { onShare: () => void }) {
     const el = viewportRef.current;
     if (!el) return;
     const measure = () => {
+      // Reserve whichever reaches lowest: the header text band or the top-left
+      // brand corner (logo + community button), so notes never sit under either.
       const header = document.querySelector(".site-header");
-      const top = header
-        ? Math.round(header.getBoundingClientRect().height) + 20
-        : 130;
+      const brand = document.querySelector(".brand-corner");
+      const headerBottom = header ? header.getBoundingClientRect().bottom : 120;
+      const brandBottom = brand ? brand.getBoundingClientRect().bottom : 0;
+      const top = Math.round(Math.max(headerBottom, brandBottom)) + 20;
       setDims({ w: el.clientWidth, h: el.clientHeight, top });
     };
     measure();
@@ -79,6 +82,8 @@ export default function Wall({ onShare }: { onShare: () => void }) {
     ro.observe(el);
     const header = document.querySelector(".site-header");
     if (header) ro.observe(header);
+    const brand = document.querySelector(".brand-corner");
+    if (brand) ro.observe(brand);
     return () => ro.disconnect();
   }, []);
 

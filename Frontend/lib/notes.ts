@@ -7,7 +7,8 @@ export interface NoteData {
   apiId: string; // the note's uuid (for like / comment / delete APIs)
   text: string;
   color: string; // yellow | pink | purple | blue | green | slate
-  authorName?: string | null; // shown on the note only if the founder revealed it
+  authorName?: string | null; // optional name the poster typed
+  affiliation?: string | null; // startup / org / what they're building
   likes: number; // shared like tally, visible to everyone
   commentCount: number;
 }

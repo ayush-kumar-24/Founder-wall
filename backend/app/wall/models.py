@@ -59,6 +59,9 @@ class Note(Base, TimestampMixin):
     content: Mapped[str] = mapped_column(String(512), nullable=False)
     # Optional name the poster typed. NULL = anonymous.
     author_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Required for new posts: the startup / org they're from, or what they're
+    # building. Nullable so legacy rows (posted before this) stay valid.
+    affiliation: Mapped[str | None] = mapped_column(String(120), nullable=True)
     # Secret returned once to the creator; lets that browser delete its own note
     # without an account. NULL notes can only be removed by a moderator.
     delete_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -96,3 +99,5 @@ class Comment(Base, TimestampMixin):
     content: Mapped[str] = mapped_column(String(280), nullable=False)
     # Optional name the commenter typed. NULL = anonymous.
     author_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # Required for new comments: startup / org, or what they're building.
+    affiliation: Mapped[str | None] = mapped_column(String(120), nullable=True)

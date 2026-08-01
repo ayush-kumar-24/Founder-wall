@@ -1,0 +1,184 @@
+<title>Founder's Wall — Scan to Join</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --wall: #e7dcc0;
+    --wall-2: #ded1af;
+    --paper: #f6f0df;
+    --ink: #2b241a;
+    --ink-soft: #6b6048;
+    --tape: #efe8cf;
+    --g-lite: #9bd24f;
+    --g-dark: #3e9b3a;
+    --g-deep: #1b4d2e;
+    --hair: rgba(43, 36, 26, 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --wall: #2a2417;
+      --wall-2: #201b10;
+      --paper: #f6f0df; /* the note stays paper — a QR must read dark-on-light */
+      --ink: #2b241a;
+      --ink-soft: #6b6048;
+      --hair: rgba(43, 36, 26, 0.12);
+    }
+  }
+  :root[data-theme="light"] { --wall: #e7dcc0; --wall-2: #ded1af; }
+  :root[data-theme="dark"] { --wall: #2a2417; --wall-2: #201b10; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(20px, 5vw, 56px);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(120% 90% at 50% 8%, rgba(255, 250, 235, 0.5), rgba(0, 0, 0, 0) 60%),
+      radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px) 0 0 / 4px 4px,
+      linear-gradient(160deg, var(--wall), var(--wall-2));
+  }
+
+  .note {
+    position: relative;
+    width: min(440px, 100%);
+    background:
+      radial-gradient(130% 80% at 30% -6%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%),
+      var(--paper);
+    border-radius: 4px 6px 5px 6px;
+    padding: clamp(30px, 6vw, 46px) clamp(24px, 5vw, 40px) clamp(26px, 5vw, 38px);
+    text-align: center;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 2px 3px rgba(0, 0, 0, 0.06),
+      0 34px 60px -22px rgba(30, 20, 5, 0.55),
+      0 12px 22px rgba(30, 20, 5, 0.18);
+    transform: rotate(-1.2deg);
+  }
+  /* washi tape */
+  .note::before {
+    content: "";
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    width: 128px;
+    height: 30px;
+    transform: translateX(-50%) rotate(-2.4deg);
+    background:
+      linear-gradient(100deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.05) 60%),
+      var(--tape);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+    opacity: 0.92;
+  }
+
+  .eyebrow {
+    margin: 4px 0 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--g-dark);
+  }
+  h1 {
+    margin: 8px 0 0;
+    font-size: clamp(2.2rem, 8vw, 3rem);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    color: var(--ink);
+  }
+  .pitch {
+    margin: 12px auto 0;
+    max-width: 30ch;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .pitch b { color: var(--ink); font-weight: 600; }
+
+  .rule {
+    width: 54px;
+    height: 4px;
+    margin: 22px auto 0;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--g-lite), var(--g-dark));
+  }
+
+  .qr-frame {
+    margin: 22px auto 0;
+    width: fit-content;
+    padding: 16px;
+    background: #ffffff; /* quiet zone — stays white in every theme so it scans */
+    border-radius: 12px;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.06),
+      0 10px 22px -10px rgba(30, 20, 5, 0.4);
+  }
+  .qr-frame svg {
+    display: block;
+    width: clamp(200px, 54vw, 250px);
+    height: auto;
+    shape-rendering: crispEdges;
+    image-rendering: pixelated;
+  }
+
+  .cta {
+    margin: 20px 0 0;
+    font-size: 1.02rem;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .url {
+    display: inline-block;
+    margin: 8px 0 0;
+    padding: 7px 15px;
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+    color: var(--g-deep);
+    background: rgba(62, 155, 58, 0.1);
+    border: 1px solid rgba(62, 155, 58, 0.28);
+    border-radius: 999px;
+  }
+
+  .foot {
+    margin: 22px 0 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+  .foot b {
+    background: linear-gradient(90deg, var(--g-lite), var(--g-dark));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .note { box-shadow: none; transform: none; border: 1px solid var(--hair); }
+    .note::before { display: none; }
+  }
+</style>
+
+<div class="note">
+  <p class="eyebrow">An Initiative by GoXL</p>
+  <h1>Founder&rsquo;s Wall</h1>
+  <p class="pitch"><b>Your problems. Your questions. Zero judgment.</b> A wall where founders pin what they can&rsquo;t say out loud &mdash; anonymously.</p>
+
+  <div class="rule" aria-hidden="true"></div>
+
+  <div class="qr-frame">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41" role="img" aria-label="QR code linking to founderwall.goxl.in"><path fill="#ffffff" d="M0 0h41v41H0z"/><path stroke="#000000" d="M4 4.5h7m1 0h3m3 0h1m6 0h1m1 0h2m1 0h7M4 5.5h1m5 0h1m1 0h1m2 0h1m1 0h2m1 0h2m1 0h1m4 0h1m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h1m1 0h4m1 0h2m1 0h1m2 0h1m1 0h2m1 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m2 0h1m2 0h1m3 0h2m4 0h3m1 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m2 0h4m1 0h2m1 0h1m1 0h1m2 0h1m3 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h4m2 0h1m1 0h1m1 0h2m1 0h4m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h3m2 0h1m1 0h2m1 0h4m1 0h1M6 12.5h3m1 0h1m1 0h3m3 0h3m1 0h1m4 0h5m2 0h3M4 13.5h3m2 0h1m3 0h2m2 0h1m2 0h6m1 0h1m1 0h2m2 0h1m2 0h1M6 14.5h2m1 0h2m3 0h1m1 0h2m2 0h1m4 0h1m2 0h4m2 0h2M6 15.5h1m2 0h1m4 0h1m3 0h2m1 0h2m2 0h2m1 0h1m1 0h1m2 0h2m1 0h1M4 16.5h3m2 0h3m1 0h5m3 0h1m1 0h1m1 0h1m1 0h1m1 0h1m5 0h1M4 17.5h1m4 0h1m2 0h1m2 0h2m2 0h1m2 0h1m3 0h2m2 0h2m1 0h1m2 0h1M5 18.5h2m1 0h5m5 0h1m3 0h3m1 0h1m2 0h1m5 0h1M8 19.5h2m1 0h1m2 0h1m1 0h1m1 0h1m2 0h2m2 0h2m2 0h3m2 0h3M7 20.5h1m1 0h2m2 0h4m1 0h1m2 0h1m1 0h2m4 0h1m1 0h2m1 0h1m1 0h1M4 21.5h2m1 0h1m3 0h1m1 0h1m1 0h5m2 0h1m1 0h2m1 0h2m1 0h1m5 0h1M4 22.5h3m2 0h4m1 0h2m1 0h1m1 0h6m1 0h1m2 0h4m1 0h2M5 23.5h2m2 0h1m4 0h1m1 0h5m1 0h1m2 0h4m1 0h1m1 0h4M4 24.5h1m1 0h1m3 0h3m1 0h1m1 0h1m1 0h2m1 0h3m2 0h1m2 0h5m2 0h1M4 25.5h1m1 0h1m1 0h1m2 0h1m1 0h2m2 0h1m2 0h1m7 0h1m4 0h1m2 0h1M4 26.5h1m1 0h1m3 0h1m1 0h1m2 0h1m1 0h4m1 0h3m1 0h1m6 0h1m1 0h1M4 27.5h1m1 0h2m1 0h1m6 0h2m1 0h2m2 0h1m1 0h1m2 0h1m4 0h3M4 28.5h1m1 0h1m1 0h1m1 0h2m1 0h3m1 0h2m1 0h1m1 0h3m1 0h1m1 0h6M12 29.5h1m2 0h1m2 0h1m1 0h1m3 0h1m2 0h2m3 0h2m2 0h1M4 30.5h7m3 0h2m1 0h1m8 0h3m1 0h1m1 0h1m1 0h2M4 31.5h1m5 0h1m2 0h2m1 0h2m1 0h6m2 0h2m3 0h1m1 0h3M4 32.5h1m1 0h3m1 0h1m1 0h1m1 0h3m1 0h2m1 0h1m1 0h4m1 0h5m2 0h2M4 33.5h1m1 0h3m1 0h1m1 0h1m3 0h1m1 0h1m1 0h1m1 0h1m4 0h1m1 0h1m2 0h2m1 0h1M4 34.5h1m1 0h3m1 0h1m1 0h1m3 0h2m1 0h1m4 0h1m1 0h2m1 0h2M4 35.5h1m5 0h1m8 0h5m1 0h2m2 0h1m1 0h1m1 0h1M4 36.5h7m2 0h1m2 0h1m1 0h3m2 0h2m1 0h3m5 0h2"/></svg>
+  </div>
+
+  <p class="cta">Scan to step up to the wall</p>
+  <span class="url">founderwall.goxl.in</span>
+
+  <p class="foot">Built for founders, by <b>GoXL</b></p>
+</div>

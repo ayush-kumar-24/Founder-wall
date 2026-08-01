@@ -154,11 +154,13 @@ export interface CreatedNote extends ApiNote {
 export async function createNote(
   content: string,
   color: NoteColor,
+  affiliation: string,
   authorName?: string | null
 ): Promise<CreatedNote> {
   const res = await mutate("/wall/notes", "POST", {
     content,
     color,
+    affiliation,
     author_name: authorName || null,
   });
   if (res.status === 422) {
@@ -193,10 +195,12 @@ export async function fetchComments(
 export async function createComment(
   noteId: string,
   content: string,
+  affiliation: string,
   authorName?: string | null
 ): Promise<ApiComment> {
   const res = await mutate(`/wall/notes/${noteId}/comments`, "POST", {
     content,
+    affiliation,
     author_name: authorName || null,
   });
   if (res.status === 422) {

@@ -6,6 +6,7 @@ import { NOTE_CATEGORIES } from "@/lib/mapping";
 import { useWallActions } from "@/lib/useWallActions";
 
 const NAME_MAX = 80;
+const AFFILIATION_MAX = 120;
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
 
@@ -39,6 +40,7 @@ export default function ShareModal({
   const [text, setText] = useState("");
   const [categoryKey, setCategoryKey] = useState(NOTE_CATEGORIES[0].key);
   const [name, setName] = useState("");
+  const [affiliation, setAffiliation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -49,6 +51,7 @@ export default function ShareModal({
     setText("");
     setCategoryKey(NOTE_CATEGORIES[0].key);
     setName("");
+    setAffiliation("");
     setError(null);
 
     const restoreTo = document.activeElement as HTMLElement | null;
@@ -85,7 +88,7 @@ export default function ShareModal({
   const submit = async () => {
     setBusy(true);
     setError(null);
-    const res = await post(text, category.value, name);
+    const res = await post(text, category.value, affiliation, name);
     setBusy(false);
     if (res.ok) onClose();
     else setError(res.error ?? "Something went wrong.");
@@ -144,6 +147,19 @@ export default function ShareModal({
           </div>
 
           <label className="name-field">
+            <span className="field-label">Your startup or what you&apos;re building *</span>
+            <input
+              type="text"
+              value={affiliation}
+              maxLength={AFFILIATION_MAX}
+              onChange={(e) => setAffiliation(e.target.value)}
+              placeholder="e.g. Acme Inc — or “building an AI tutor”"
+              aria-label="Your startup or what you're building (required)"
+              required
+            />
+          </label>
+
+          <label className="name-field">
             <span className="field-label">Your name (optional)</span>
             <input
               type="text"
@@ -164,7 +180,11 @@ export default function ShareModal({
             <button
               className="btn btn-primary"
               onClick={submit}
-              disabled={busy || text.trim().length === 0}
+              disabled={
+                busy ||
+                text.trim().length === 0 ||
+                affiliation.trim().length === 0
+              }
             >
               {busy ? "Pinning…" : "Pin it to the wall"}
             </button>

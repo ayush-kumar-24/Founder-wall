@@ -10,7 +10,8 @@ export interface ApiNote {
   id: string; // uuid
   content: string;
   color: NoteColor;
-  author_name: string | null; // present only when the founder revealed their identity
+  author_name: string | null; // optional name the poster typed
+  affiliation: string | null; // startup / org / what they're building (required on post)
   likes: number; // shared like tally, visible to everyone
   comment_count: number;
   x: number; // grid column (server-assigned; unused by the 2D wall)
@@ -24,6 +25,7 @@ export interface ApiComment {
   id: string; // uuid
   content: string;
   author_name: string | null;
+  affiliation: string | null;
   created_at: string;
 }
 
@@ -122,6 +124,7 @@ export function apiNoteToNoteData(api: ApiNote): NoteData {
     text: api.content,
     color: COLOR_CLASS[api.color] ?? "yellow",
     authorName: api.author_name ?? null,
+    affiliation: api.affiliation ?? null,
     likes: api.likes ?? 0,
     commentCount: api.comment_count ?? 0,
   };

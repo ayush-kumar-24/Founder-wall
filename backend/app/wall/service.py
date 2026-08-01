@@ -93,7 +93,12 @@ class WallService:
             raise ValidationError("Comment rejected by content policy", code="content_rejected")
 
         comment = await self._repo.add_comment(
-            Comment(note_id=note_id, content=data.content, author_name=data.author_name)
+            Comment(
+                note_id=note_id,
+                content=data.content,
+                author_name=data.author_name,
+                affiliation=data.affiliation,
+            )
         )
         note.comment_count = note.comment_count + 1
         await self._session.flush()
@@ -210,6 +215,7 @@ class WallService:
                 user_id=None,
                 content=data.content,
                 author_name=data.author_name,
+                affiliation=data.affiliation,
                 delete_token=delete_token,
                 color=data.color or NoteColor.AMBER,
                 status=NoteStatus.ACTIVE,

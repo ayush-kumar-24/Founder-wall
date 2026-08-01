@@ -21,7 +21,7 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
   return (
     <header className="site-header">
       {/* GoXL parent brand — pinned to the top-left on every device; links to
-          the GoXL website. */}
+          the GoXL website, with the GoXL community right beneath it. */}
       <div className="brand-corner">
         <a
           href={GOXL_URL}
@@ -32,13 +32,9 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
         >
           <Logo className="brand-logo" />
         </a>
-      </div>
-
-      <div className="header-corner">
-        {/* Desktop actions — inline in the corner. */}
         {whatsapp && (
           <a
-            className="btn btn-ghost header-corner__action wa-link"
+            className="brand-wa wa-link"
             href={whatsapp}
             target="_blank"
             rel="noopener noreferrer"
@@ -47,6 +43,10 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
             GoXL community
           </a>
         )}
+      </div>
+
+      <div className="header-corner">
+        {/* Desktop actions — inline in the corner. */}
         <button className="btn btn-ghost header-corner__action" onClick={onAbout}>
           about
         </button>
@@ -71,19 +71,6 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
         <>
           <div className="nav-scrim" onClick={() => setMenuOpen(false)} />
           <div className="nav-menu" role="menu">
-            {whatsapp && (
-              <a
-                className="nav-menu__item wa-link"
-                role="menuitem"
-                href={whatsapp}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMenuOpen(false)}
-              >
-                <WhatsAppIcon className="wa-icon" />
-                GoXL WhatsApp community
-              </a>
-            )}
             <button
               className="nav-menu__item"
               role="menuitem"

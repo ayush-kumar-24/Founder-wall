@@ -87,8 +87,10 @@ function StickyNote({ note, isMine, fresh, layout, scale = 1, onOpen }: StickyNo
     >
       <span className="note__tape" aria-hidden="true" />
       <span className="note__text">{note.text}</span>
-      {note.authorName && (
-        <span className="note__author">— {note.authorName}</span>
+      {(note.authorName || note.affiliation) && (
+        <span className="note__author">
+          — {[note.authorName, note.affiliation].filter(Boolean).join(" · ")}
+        </span>
       )}
       {(note.likes > 0 || note.commentCount > 0) && (
         <span className="note__meta" aria-hidden="true">

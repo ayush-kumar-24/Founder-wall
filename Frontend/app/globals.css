@@ -359,6 +359,25 @@ body::after {
   /* A soft lift so the GoXL brand draws the eye. */
   filter: drop-shadow(0 3px 6px rgba(30, 20, 5, 0.28));
 }
+/* GoXL community button, tucked under the logo. */
+.brand-wa {
+  pointer-events: auto; /* clickable within the pass-through header */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(37, 211, 102, 0.14);
+  border: 1px solid rgba(37, 211, 102, 0.42);
+  color: #0f7a6d;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.brand-wa:hover { background: rgba(37, 211, 102, 0.24); transform: translateY(-1px); }
+.brand-wa:focus-visible { outline: 3px solid #25d366; outline-offset: 2px; }
 .wall-title {
   font-family: "Caveat", cursive;
   font-weight: 700;
