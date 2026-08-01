@@ -58,7 +58,8 @@ export default function Wall({ onShare }: { onShare: () => void }) {
   const { remove } = useWallActions();
 
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [dims, setDims] = useState({ w: 0, h: 0 });
+  // `top` reserves the header's height so notes never sit under the title.
+  const [dims, setDims] = useState({ w: 0, h: 0, top: 0 });
   const [openId, setOpenId] = useState<number | null>(null);
   const [cam, setCam] = useState<Camera>({ x: 0, y: 0, s: 1 });
   const camReady = useRef(false);
@@ -66,10 +67,18 @@ export default function Wall({ onShare }: { onShare: () => void }) {
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
-    const measure = () => setDims({ w: el.clientWidth, h: el.clientHeight });
+    const measure = () => {
+      const header = document.querySelector(".site-header");
+      const top = header
+        ? Math.round(header.getBoundingClientRect().height) + 20
+        : 130;
+      setDims({ w: el.clientWidth, h: el.clientHeight, top });
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
+    const header = document.querySelector(".site-header");
+    if (header) ro.observe(header);
     return () => ro.disconnect();
   }, []);
 
@@ -101,9 +110,11 @@ export default function Wall({ onShare }: { onShare: () => void }) {
   }, [notes.length, dims]);
 
   // The zoomed-all-the-way-out scale: the whole wall in view, with a margin.
+  // The usable height excludes the header strip reserved at the top.
   const minScale = useMemo(() => {
     if (dims.w <= 0 || dims.h <= 0) return 0.2;
-    return Math.min(dims.w / wall.W, dims.h / wall.H) * 0.94;
+    const usableH = Math.max(1, dims.h - dims.top);
+    return Math.min(dims.w / wall.W, usableH / wall.H) * 0.94;
   }, [dims, wall]);
 
   const clampCam = useCallback(
@@ -111,12 +122,14 @@ export default function Wall({ onShare }: { onShare: () => void }) {
       const s = Math.min(Math.max(c.s, minScale), MAX_SCALE);
       const sw = wall.W * s;
       const sh = wall.H * s;
+      const usableH = Math.max(1, dims.h - dims.top);
       let x = c.x;
       let y = c.y;
       if (sw <= dims.w) x = (dims.w - sw) / 2;
       else x = Math.min(0, Math.max(dims.w - sw, x));
-      if (sh <= dims.h) y = (dims.h - sh) / 2;
-      else y = Math.min(0, Math.max(dims.h - sh, y));
+      // Keep the plane below the reserved header strip (never above dims.top).
+      if (sh <= usableH) y = dims.top + (usableH - sh) / 2;
+      else y = Math.min(dims.top, Math.max(dims.h - sh, y));
       return { x, y, s };
     },
     [minScale, wall, dims]

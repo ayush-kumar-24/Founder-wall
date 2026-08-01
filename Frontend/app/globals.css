@@ -342,18 +342,22 @@ body::after {
   cursor: pointer;
   border-radius: 6px;
   -webkit-tap-highlight-color: transparent;
+  transition: transform 0.18s ease;
 }
+.brand-link:hover { transform: translateY(-1px) scale(1.03); }
 .brand-link:focus-visible {
   outline: 3px solid #8a7c52;
   outline-offset: 3px;
 }
 .brand-logo {
-  height: clamp(30px, 4.2vw, 44px);
+  height: clamp(40px, 5.6vw, 60px);
   width: auto;
-  max-width: 44vw;
+  max-width: 48vw;
   flex: none;
   display: block;
   object-fit: contain;
+  /* A soft lift so the GoXL brand draws the eye. */
+  filter: drop-shadow(0 3px 6px rgba(30, 20, 5, 0.28));
 }
 .wall-title {
   font-family: "Caveat", cursive;
@@ -364,7 +368,7 @@ body::after {
   color: var(--ink);
 }
 .wall-subtitle {
-  margin: 3px 0 0;
+  margin: 5px 0 0;
   font-size: clamp(0.82rem, 1.6vw, 0.98rem);
   letter-spacing: 0.04em;
   color: var(--ink-soft);
@@ -376,7 +380,7 @@ body::after {
   justify-content: center;
   flex-wrap: wrap;
   gap: 6px 12px;
-  margin: 8px 0 0;
+  margin: 18px 0 0;
 }
 .wall-stats__group {
   display: inline-flex;

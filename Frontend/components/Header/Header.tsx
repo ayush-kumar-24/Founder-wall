@@ -44,7 +44,7 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
             rel="noopener noreferrer"
           >
             <WhatsAppIcon className="wa-icon" />
-            community
+            GoXL community
           </a>
         )}
         <button className="btn btn-ghost header-corner__action" onClick={onAbout}>
@@ -81,7 +81,7 @@ export default function Header({ onAbout }: { onAbout: () => void }) {
                 onClick={() => setMenuOpen(false)}
               >
                 <WhatsAppIcon className="wa-icon" />
-                WhatsApp community
+                GoXL WhatsApp community
               </a>
             )}
             <button
